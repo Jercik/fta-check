@@ -29,6 +29,10 @@ npx fta-check ./src
 npx fta-check --help
 ```
 
+## Configuration
+
+Configure FTA using an `fta.json` file in your project root—see the [official FTA configuration docs](https://ftaproject.dev/docs/configuration) for all available options. Use `--threshold` (not `score_cap`) with `fta-check` to control which files are reported as violations while ensuring a detailed report is generated.
+
 ### Troubleshooting
 
 - Error: `FTA CLI not found on PATH`
@@ -46,17 +50,19 @@ npx fta-check --help
 ## Example Output
 
 ```
+
 Analyzing TypeScript files...
 
-⚠️  High Complexity Files:
+⚠️ High Complexity Files:
 
-  src/complex-service.ts
-    Cyclomatic Complexity: 45 (threshold: 20)
-    Maintainability: 42.3 (threshold: 65)
-    → Consider refactoring this file into smaller functions
+src/complex-service.ts
+Cyclomatic Complexity: 45 (threshold: 20)
+Maintainability: 42.3 (threshold: 65)
+→ Consider refactoring this file into smaller functions
 
 ✓ 12 files analyzed
 ⚠️ 1 file needs attention
+
 ```
 
 ## Development

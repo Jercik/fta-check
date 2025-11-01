@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import packageJson from "../package.json" with { type: "json" };
+import { buildPassThroughArguments } from "./lib/build-pass-through-arguments.js";
 import {
   DEFAULT_THRESHOLD,
   getViolations,
@@ -9,13 +10,11 @@ import {
 } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
 
-type CliOptions = {
-  threshold: number;
-};
+type CliOptions = { threshold: number };
 
-function run(threshold: number): number {
+function run(threshold: number, ftaArguments: string[]): number {
   try {
-    const violations = getViolations(threshold);
+    const violations = getViolations(threshold, ftaArguments);
 
     if (violations.length === 0) {
       console.log(
@@ -41,7 +40,8 @@ function main(argv: string[]): void {
     .name(packageJson.name)
     .description(packageJson.description)
     .version(packageJson.version)
-    .allowExcessArguments(false)
+    .allowUnknownOption(true)
+    .allowExcessArguments(true)
     .showHelpAfterError()
     .option(
       "--threshold <number>",
@@ -50,8 +50,10 @@ function main(argv: string[]): void {
       DEFAULT_THRESHOLD,
     )
     .action(() => {
+      const raw = argv.slice(2);
+      const passThrough = buildPassThroughArguments(raw);
       const { threshold } = program.opts<CliOptions>();
-      const exitCode = run(threshold);
+      const exitCode = run(threshold, passThrough);
       process.exitCode = exitCode;
     });
 

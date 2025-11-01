@@ -1,6 +1,6 @@
 {
   "name": "fta-check",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Thin wrapper around FTA (Fast TypeScript Analyzer) that provides actionable error messages for automated code quality checks and AI agent guidance",
   "type": "module",
   "main": "./dist/cli.js",
@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsc --build tsconfig.app.json",
     "dev": "tsc --build tsconfig.app.json --watch",
+    "start": "node ./bin/fta-check",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "lint": "eslint",
