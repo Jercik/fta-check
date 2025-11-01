@@ -20,7 +20,7 @@
     "test": "vitest run",
     "lint": "eslint",
     "knip": "knip",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "prepublishOnly": "pnpm run clean && pnpm run build",
     "prepare": "husky",
     "format": "prettier --write .",
