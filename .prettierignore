@@ -1,0 +1,9 @@
+# Dependency lockfiles
+pnpm-lock.yaml
+
+# Build output
+dist/
+
+# Rule files
+AGENTS.md
+CLAUDE.md
