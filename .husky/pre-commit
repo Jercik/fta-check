@@ -1,4 +1,5 @@
-# Format staged files with Prettier
+# Format code
+[ -f package.json ] && npm pkg fix
 prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --write --ignore-unknown --log-level warn
 git update-index --again
 
@@ -6,4 +7,5 @@ git update-index --again
 pnpm -s run knip
 pnpm -s run typecheck
 pnpm -s run lint
+pnpm -s run fta:check
 pnpm -s run test
