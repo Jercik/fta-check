@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
 
-export const DEFAULT_THRESHOLD = 50;
+export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage =
   "--threshold requires a non-empty value (e.g., --threshold=50)";
 

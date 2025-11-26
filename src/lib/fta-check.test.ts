@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { parseThreshold, parseThresholdValue } from "./fta-check.js";
 
 describe("parseThreshold", () => {
-  it("returns 50 when no threshold argument is provided", () => {
-    expect(parseThreshold([])).toBe(50);
-    expect(parseThreshold(["--other-arg"])).toBe(50);
+  it("returns 55 when no threshold argument is provided", () => {
+    expect(parseThreshold([])).toBe(55);
+    expect(parseThreshold(["--other-arg"])).toBe(55);
   });
 
   it("parses valid threshold values correctly", () => {
