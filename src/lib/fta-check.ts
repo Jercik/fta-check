@@ -3,7 +3,7 @@ import type { FtaResult } from "../fta-types.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage =
-  "--threshold requires a non-empty value (e.g., --threshold=50)";
+  "--threshold requires a non-empty value (e.g., --threshold=55)";
 
 export function parseThresholdValue(value: string): number {
   if (value.trim() === "") throw new TypeError(missingValueMessage);
