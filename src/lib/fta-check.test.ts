@@ -16,13 +16,13 @@ describe("parseThreshold", () => {
 
   it("throws error when threshold has no value", () => {
     expect(() => parseThreshold(["--threshold"])).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=50)",
+      "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
     expect(() => parseThreshold(["--threshold="])).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=50)",
+      "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
     expect(() => parseThreshold(["--threshold", "--other"])).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=50)",
+      "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
   });
 
@@ -46,7 +46,7 @@ describe("parseThresholdValue", () => {
 
   it("rejects empty values", () => {
     expect(() => parseThresholdValue("  ")).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=50)",
+      "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
   });
 
