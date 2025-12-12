@@ -20,7 +20,7 @@ Use concise prompts for quick facts and focused questions for deeper topics. If 
 
 # Rule: Child Process Selection
 
-Choose the appropriate `node:child_process` function based on synchronicity, shell requirements, output size, and error handling. (Defaults from Node.js 25.2.1 docs.)
+Choose the appropriate `node:child_process` function based on synchronicity, shell requirements, output size, and error handling. (Defaults from Node.js 25.x docs.)
 
 | Function       | Type  | Default shell?      | Output style                        | Best for                                                           |
 | :------------- | :---- | :------------------ | :---------------------------------- | :----------------------------------------------------------------- |
