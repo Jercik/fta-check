@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import path from "node:path";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
 
@@ -71,17 +70,6 @@ function stripArgument(arguments_: string[], name: string): string[] {
 }
 
 /**
- * Extracts the project directory from arguments.
- * Returns the first positional argument (non-flag) or cwd if none provided.
- */
-function getProjectDirectory(arguments_: string[]): string {
-  for (const a of arguments_) {
-    if (!a.startsWith("-")) return path.resolve(a);
-  }
-  return process.cwd();
-}
-
-/**
  * Checks if user provided --config-path or -c flag.
  */
 function hasUserConfigPath(arguments_: string[]): boolean {
@@ -111,9 +99,8 @@ export function getViolations(
       // User provided custom config - skip our defaults, pass through as-is
       finalArguments = ["--json", ...argumentsWithoutJson];
     } else {
-      // No user config - apply our defaults
-      const projectDirectory = getProjectDirectory(argumentsWithoutJson);
-      const config = loadConfig(projectDirectory);
+      // No user config - apply our defaults from project root (cwd)
+      const config = loadConfig(process.cwd());
       const configPath = writeConfigToTemporaryFile(config);
       finalArguments = [
         "--json",
