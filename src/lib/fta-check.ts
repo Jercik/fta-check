@@ -81,30 +81,48 @@ function getProjectDirectory(arguments_: string[]): string {
   return process.cwd();
 }
 
+/**
+ * Checks if user provided --config-path or -c flag.
+ */
+function hasUserConfigPath(arguments_: string[]): boolean {
+  return arguments_.some(
+    (a) =>
+      a === "--config-path" ||
+      a === "-c" ||
+      a.startsWith("--config-path=") ||
+      a.startsWith("-c="),
+  );
+}
+
 export function getViolations(
   threshold: number,
   ftaArguments: string[] = [],
 ): FtaResult[] {
   try {
-    // Determine project directory and load merged config
-    const projectDirectory = getProjectDirectory(ftaArguments);
-    const config = loadConfig(projectDirectory);
-    const configPath = writeConfigToTemporaryFile(config);
+    // Strip --json (we always add it for parsing)
+    const argumentsWithoutJson = stripArgument(ftaArguments, "--json");
 
-    // Strip user-provided --json and --config-path (we handle these)
-    let strippedArguments = stripArgument(ftaArguments, "--json");
-    strippedArguments = stripArgument(strippedArguments, "--config-path");
-    strippedArguments = stripArgument(strippedArguments, "-c");
+    // Check for positional path before building final arguments
+    const needsDefaultPath = !hasPositionalPath(argumentsWithoutJson);
 
-    // Build final arguments with our config
-    // Check for positional path BEFORE adding our flags (to avoid false positives)
-    const needsDefaultPath = !hasPositionalPath(strippedArguments);
-    const finalArguments = [
-      "--json",
-      "--config-path",
-      configPath,
-      ...strippedArguments,
-    ];
+    let finalArguments: string[];
+
+    if (hasUserConfigPath(argumentsWithoutJson)) {
+      // User provided custom config - skip our defaults, pass through as-is
+      finalArguments = ["--json", ...argumentsWithoutJson];
+    } else {
+      // No user config - apply our defaults
+      const projectDirectory = getProjectDirectory(argumentsWithoutJson);
+      const config = loadConfig(projectDirectory);
+      const configPath = writeConfigToTemporaryFile(config);
+      finalArguments = [
+        "--json",
+        "--config-path",
+        configPath,
+        ...argumentsWithoutJson,
+      ];
+    }
+
     if (needsDefaultPath) finalArguments.push(".");
 
     const output = execFileSync("fta", finalArguments, {
