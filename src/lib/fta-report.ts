@@ -1,14 +1,8 @@
 import type { FtaResult } from "../fta-types.js";
 
-function getCrossMark(): string {
-  const flag = (process.env.NO_EMOJI || "").toLowerCase();
-  if (flag === "1" || flag === "true") return "X";
-  return "❌";
-}
-
 function generateSuggestions(result: FtaResult): string[] {
   const suggestions: string[] = [
-    "🎯 Extract functionality into separate files (most effective for reducing FTA)",
+    "Extract functionality into separate files (most effective for reducing FTA)",
   ];
   if (result.line_count > 100) {
     suggestions.push(
@@ -44,7 +38,7 @@ function generateSuggestions(result: FtaResult): string[] {
     );
   }
   suggestions.push(
-    "⚠️ Note: Small refactors within the file won't significantly reduce FTA",
+    "Note: Small refactors within the file won't significantly reduce FTA",
   );
   return suggestions;
 }
@@ -55,7 +49,7 @@ function formatViolation(result: FtaResult): string {
     .map((s) => `   - ${s}`)
     .join("\n");
   return `
-${getCrossMark()} ${result.file_name}
+X ${result.file_name}
    FTA Score: ${result.fta_score.toFixed(2)} (${result.assessment})
    Lines: ${result.line_count.toString()} | Cyclomatic Complexity: ${result.cyclo.toString()}
 
@@ -65,39 +59,39 @@ ${getCrossMark()} ${result.file_name}
    - Volume: ${h.volume.toFixed(2)} | Difficulty: ${h.difficulty.toFixed(2)}
    - Estimated bugs: ${h.bugs.toFixed(2)}
 
-   💡 How to improve:
+   How to improve:
 ${suggestions}
 `.trim();
 }
 
 export function printReport(violations: FtaResult[], threshold: number): void {
-  console.log(
+  console.error(
     "\nThe code was statically analyzed and several complexity issues were found:\n",
   );
-  console.log(`FTA Score Violations (threshold: ${threshold.toString()})\n`);
-  console.log(
+  console.error(`FTA Score Violations (threshold: ${threshold.toString()})\n`);
+  console.error(
     "The FTA score combines Halstead complexity, cyclomatic complexity, and lines of code",
   );
-  console.log(
+  console.error(
     "to measure maintainability. Higher scores indicate files that are more difficult to maintain.\n",
   );
-  console.log(
-    "📋 KEY INSIGHT: The most effective way to reduce FTA scores is to EXTRACT functionality",
+  console.error(
+    "KEY INSIGHT: The most effective way to reduce FTA scores is to EXTRACT functionality",
   );
-  console.log(
+  console.error(
     "   into separate files. This is an opportunity to identify reusable code that could",
   );
-  console.log(
+  console.error(
     "   benefit other parts of your codebase. Small optimizations within a file rarely",
   );
-  console.log("   make a significant impact on the FTA score.\n");
+  console.error("   make a significant impact on the FTA score.\n");
 
   for (const [index, v] of violations.entries()) {
-    console.log(formatViolation(v));
-    if (index < violations.length - 1) console.log();
+    console.error(formatViolation(v));
+    if (index < violations.length - 1) console.error();
   }
 
-  console.log(
+  console.error(
     `\nFound ${violations.length.toString()} file(s) exceeding threshold of ${threshold.toString()}`,
   );
 }

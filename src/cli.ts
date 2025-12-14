@@ -10,14 +10,20 @@ import {
 } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
 
-function run(threshold: number, ftaArguments: string[]): number {
+function run(
+  threshold: number,
+  ftaArguments: string[],
+  verbose: boolean,
+): number {
   try {
     const violations = getViolations(threshold, ftaArguments);
 
     if (violations.length === 0) {
-      console.error(
-        `✅ All files pass FTA threshold check (threshold: ${threshold.toString()})`,
-      );
+      if (verbose) {
+        console.error(
+          `All files pass FTA threshold check (threshold: ${threshold.toString()})`,
+        );
+      }
       return 0;
     }
 
@@ -46,10 +52,15 @@ function main(argv: string[]): void {
       parseThresholdValue,
       DEFAULT_THRESHOLD,
     )
+    .option("-v, --verbose", "Show success message when all files pass")
     .action((options) => {
       const raw = argv.slice(2);
       const passThrough = buildPassThroughArguments(raw);
-      const exitCode = run(options.threshold, passThrough);
+      const exitCode = run(
+        options.threshold,
+        passThrough,
+        options.verbose ?? false,
+      );
       process.exitCode = exitCode;
     })
     .parse(argv);

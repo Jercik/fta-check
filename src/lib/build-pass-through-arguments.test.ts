@@ -97,6 +97,16 @@ describe("buildPassThroughArguments", () => {
     ]);
   });
 
+  it("strips short verbose flag -v", () => {
+    const input = ["-v", "src"];
+    expect(buildPassThroughArguments(input)).toEqual(["src"]);
+  });
+
+  it("strips long verbose flag --verbose", () => {
+    const input = ["--verbose", "src"];
+    expect(buildPassThroughArguments(input)).toEqual(["src"]);
+  });
+
   it("handles complex real-world scenario", () => {
     const input = [
       "--threshold",
