@@ -32,8 +32,15 @@ export function readConfigFile(directory: string): FtaConfig | undefined {
   const configPath = path.join(directory, "fta.json");
   if (!existsSync(configPath)) return undefined;
 
-  const content = readFileSync(configPath, "utf8");
-  return JSON.parse(content) as FtaConfig;
+  try {
+    const content = readFileSync(configPath, "utf8");
+    return JSON.parse(content) as FtaConfig;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new SyntaxError(`Invalid JSON in ${configPath}: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 /**

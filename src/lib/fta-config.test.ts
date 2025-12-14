@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_CONFIG,
   loadConfig,
@@ -98,10 +98,6 @@ describe("loadConfig", () => {
 
   beforeEach(() => {
     temporaryDirectory = mkdtempSync(path.join(tmpdir(), "fta-config-test-"));
-  });
-
-  afterEach(() => {
-    // Temp directories are cleaned up by OS
   });
 
   it("returns default config when no fta.json exists", () => {
