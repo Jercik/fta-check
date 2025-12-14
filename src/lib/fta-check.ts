@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
+import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage =
@@ -68,16 +69,48 @@ function stripArgument(arguments_: string[], name: string): string[] {
   return out;
 }
 
+/**
+ * Checks if user provided --config-path or -c flag.
+ */
+function hasUserConfigPath(arguments_: string[]): boolean {
+  return arguments_.some(
+    (a) =>
+      a === "--config-path" ||
+      a === "-c" ||
+      a.startsWith("--config-path=") ||
+      a.startsWith("-c="),
+  );
+}
+
 export function getViolations(
   threshold: number,
   ftaArguments: string[] = [],
 ): FtaResult[] {
   try {
-    // Ensure JSON output for parsing and always pass-through user args
-    // Remove any user-provided --json to avoid duplicates
+    // Strip --json (we always add it for parsing)
     const argumentsWithoutJson = stripArgument(ftaArguments, "--json");
-    const finalArguments = ["--json", ...argumentsWithoutJson];
-    if (!hasPositionalPath(finalArguments)) finalArguments.push(".");
+
+    // Check for positional path before building final arguments
+    const needsDefaultPath = !hasPositionalPath(argumentsWithoutJson);
+
+    let finalArguments: string[];
+
+    if (hasUserConfigPath(argumentsWithoutJson)) {
+      // User provided custom config - skip our defaults, pass through as-is
+      finalArguments = ["--json", ...argumentsWithoutJson];
+    } else {
+      // No user config - apply our defaults from project root (cwd)
+      const config = loadConfig(process.cwd());
+      const configPath = writeConfigToTemporaryFile(config);
+      finalArguments = [
+        "--json",
+        "--config-path",
+        configPath,
+        ...argumentsWithoutJson,
+      ];
+    }
+
+    if (needsDefaultPath) finalArguments.push(".");
 
     const output = execFileSync("fta", finalArguments, {
       encoding: "utf8",

@@ -31,7 +31,31 @@ npx fta-check --help
 
 ## Configuration
 
-Configure FTA using an `fta.json` file in your project root—see the [official FTA configuration docs](https://ftaproject.dev/docs/configuration) for all available options. Use `--threshold` (not `score_cap`) with `fta-check` to control which files are reported as violations while ensuring a detailed report is generated.
+### Default Settings
+
+`fta-check` applies sensible defaults that exclude test files from analysis:
+
+```json
+{
+  "exclude_filenames": ["*.test.{ts,tsx}"]
+}
+```
+
+This means most projects don't need an `fta.json` file at all.
+
+### Customizing Configuration
+
+Create an `fta.json` file in your project root to customize settings. Each key you specify **completely replaces** the corresponding default (no merging). See the [official FTA configuration docs](https://ftaproject.dev/docs/configuration) for all available options.
+
+To include test files in analysis, override the default with an empty array:
+
+```json
+{
+  "exclude_filenames": []
+}
+```
+
+Use `--threshold` (not `score_cap`) with `fta-check` to control which files are reported as violations while ensuring a detailed report is generated.
 
 ### Troubleshooting
 
