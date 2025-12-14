@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
+import path from "node:path";
 import type { FtaResult } from "../fta-types.js";
+import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage =
@@ -68,16 +70,42 @@ function stripArgument(arguments_: string[], name: string): string[] {
   return out;
 }
 
+/**
+ * Extracts the project directory from arguments.
+ * Returns the first positional argument (non-flag) or cwd if none provided.
+ */
+function getProjectDirectory(arguments_: string[]): string {
+  for (const a of arguments_) {
+    if (!a.startsWith("-")) return path.resolve(a);
+  }
+  return process.cwd();
+}
+
 export function getViolations(
   threshold: number,
   ftaArguments: string[] = [],
 ): FtaResult[] {
   try {
-    // Ensure JSON output for parsing and always pass-through user args
-    // Remove any user-provided --json to avoid duplicates
-    const argumentsWithoutJson = stripArgument(ftaArguments, "--json");
-    const finalArguments = ["--json", ...argumentsWithoutJson];
-    if (!hasPositionalPath(finalArguments)) finalArguments.push(".");
+    // Determine project directory and load merged config
+    const projectDirectory = getProjectDirectory(ftaArguments);
+    const config = loadConfig(projectDirectory);
+    const configPath = writeConfigToTemporaryFile(config);
+
+    // Strip user-provided --json and --config-path (we handle these)
+    let strippedArguments = stripArgument(ftaArguments, "--json");
+    strippedArguments = stripArgument(strippedArguments, "--config-path");
+    strippedArguments = stripArgument(strippedArguments, "-c");
+
+    // Build final arguments with our config
+    // Check for positional path BEFORE adding our flags (to avoid false positives)
+    const needsDefaultPath = !hasPositionalPath(strippedArguments);
+    const finalArguments = [
+      "--json",
+      "--config-path",
+      configPath,
+      ...strippedArguments,
+    ];
+    if (needsDefaultPath) finalArguments.push(".");
 
     const output = execFileSync("fta", finalArguments, {
       encoding: "utf8",
