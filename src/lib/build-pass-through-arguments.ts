@@ -14,14 +14,7 @@ export function buildPassThroughArguments(raw: string[]): string[] {
     }
     if (a.startsWith("--threshold=")) continue;
     // Let commander handle help/version/verbose, do not forward
-    if (
-      a === "-h" ||
-      a === "--help" ||
-      a === "-V" ||
-      a === "--version" ||
-      a === "-v" ||
-      a === "--verbose"
-    ) {
+    if (["-h", "--help", "-V", "--version", "-v", "--verbose"].includes(a)) {
       continue;
     }
     out.push(a);
