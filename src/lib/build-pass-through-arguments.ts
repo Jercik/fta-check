@@ -13,8 +13,8 @@ export function buildPassThroughArguments(raw: string[]): string[] {
       continue;
     }
     if (a.startsWith("--threshold=")) continue;
-    // Let commander handle help/version, do not forward
-    if (a === "-h" || a === "--help" || a === "-V" || a === "--version") {
+    // Let commander handle help/version/verbose, do not forward
+    if (["-h", "--help", "-V", "--version", "-v", "--verbose"].includes(a)) {
       continue;
     }
     out.push(a);
