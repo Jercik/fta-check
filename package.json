@@ -63,7 +63,7 @@
     "@total-typescript/ts-reset": "^0.6.1",
     "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
-    "eslint-config-axpoint": "^1.0.0",
+    "eslint-config-axkit": "^1.1.0",
     "fta-check": "^1.5.1",
     "fta-cli": "^3.0.0",
     "knip": "^5.80.0",
