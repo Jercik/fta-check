@@ -1,9 +1,4 @@
-# Dependency lockfiles
+# Lock file - tracked in git but shouldn't be formatted
 pnpm-lock.yaml
-
-# Build output
-dist/
-
-# Rule files
 AGENTS.md
 CLAUDE.md
