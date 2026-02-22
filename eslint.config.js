@@ -2,11 +2,9 @@ import path from "node:path";
 import { axkit } from "eslint-config-axkit";
 
 const gitignorePath = path.join(import.meta.dirname, ".gitignore");
-const axkitConfig = await axkit({ gitignorePath });
-const baseConfig = Array.isArray(axkitConfig) ? axkitConfig : [axkitConfig];
 
 export default [
-  ...baseConfig,
+  ...(await axkit({ gitignorePath })),
   {
     rules: {
       "@typescript-eslint/no-unused-vars": [
