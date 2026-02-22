@@ -37,7 +37,9 @@ export function readConfigFile(directory: string): FtaConfig | undefined {
     return JSON.parse(content) as FtaConfig;
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new SyntaxError(`Invalid JSON in ${configPath}: ${error.message}`);
+      throw new SyntaxError(`Invalid JSON in ${configPath}: ${error.message}`, {
+        cause: error,
+      });
     }
     throw error;
   }

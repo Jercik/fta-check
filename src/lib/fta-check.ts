@@ -124,6 +124,7 @@ export function getViolations(
     if ((error as unknown as { code?: string }).code === "ENOENT") {
       throw new Error(
         "FTA CLI not found on PATH. Please install 'fta-cli' (peer dependency) in your project and re-run: npm i -D fta-cli",
+        { cause: error_ },
       );
     }
     if (typeof error.status === "number" && error.stderr) {
@@ -132,8 +133,11 @@ export function getViolations(
         : error.stderr;
       throw new Error(
         `FTA CLI failed with exit code ${String(error.status)}: ${stderrText}`,
+        { cause: error_ },
       );
     }
-    throw new Error(`Failed to execute FTA CLI: ${String(error_)}`);
+    throw new Error(`Failed to execute FTA CLI: ${String(error_)}`, {
+      cause: error_,
+    });
   }
 }
