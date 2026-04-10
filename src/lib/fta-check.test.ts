@@ -15,25 +15,25 @@ describe("parseThreshold", () => {
   });
 
   it("throws error when threshold has no value", () => {
-    expect(() => parseThreshold(["--threshold"])).toThrowError(
+    expect(() => parseThreshold(["--threshold"])).toThrow(
       "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
-    expect(() => parseThreshold(["--threshold="])).toThrowError(
+    expect(() => parseThreshold(["--threshold="])).toThrow(
       "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
-    expect(() => parseThreshold(["--threshold", "--other"])).toThrowError(
+    expect(() => parseThreshold(["--threshold", "--other"])).toThrow(
       "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
   });
 
   it("throws error when threshold is not a positive number", () => {
-    expect(() => parseThreshold(["--threshold=0"])).toThrowError(
+    expect(() => parseThreshold(["--threshold=0"])).toThrow(
       "--threshold must be a positive number",
     );
-    expect(() => parseThreshold(["--threshold=-10"])).toThrowError(
+    expect(() => parseThreshold(["--threshold=-10"])).toThrow(
       "--threshold must be a positive number",
     );
-    expect(() => parseThreshold(["--threshold=abc"])).toThrowError(
+    expect(() => parseThreshold(["--threshold=abc"])).toThrow(
       "--threshold must be a positive number",
     );
   });
@@ -45,13 +45,13 @@ describe("parseThresholdValue", () => {
   });
 
   it("rejects empty values", () => {
-    expect(() => parseThresholdValue("  ")).toThrowError(
+    expect(() => parseThresholdValue("  ")).toThrow(
       "--threshold requires a non-empty value (e.g., --threshold=55)",
     );
   });
 
   it("rejects non-positive numbers", () => {
-    expect(() => parseThresholdValue("0")).toThrowError(
+    expect(() => parseThresholdValue("0")).toThrow(
       "--threshold must be a positive number",
     );
   });
