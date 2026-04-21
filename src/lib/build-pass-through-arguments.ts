@@ -8,7 +8,7 @@ export function buildPassThroughArguments(raw: string[]): string[] {
     const a = raw[index] as string;
     // Strip our own flag and its value
     if (a === "--threshold") {
-      const next = raw[index + 1] as string | undefined;
+      const next = raw[index + 1];
       if (next !== undefined && !next.startsWith("-")) index++;
       continue;
     }

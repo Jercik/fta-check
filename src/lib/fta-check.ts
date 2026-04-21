@@ -59,7 +59,7 @@ function stripArgument(arguments_: string[], name: string): string[] {
     const a = arguments_[index] as string;
     if (a === name) {
       // skip this and its value (if any)
-      const next = arguments_[index + 1] as string | undefined;
+      const next = arguments_[index + 1];
       if (next && !next.startsWith("-")) index++;
       continue;
     }
