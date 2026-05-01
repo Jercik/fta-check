@@ -4,21 +4,22 @@ set -euo pipefail
 
 git diff --cached --check
 
+has_staged_changes() {
+  git diff --cached --quiet -- "$@" || return 0
+  return 1
+}
+
 if [[ ! -f package.json ]]; then
   exit 0
 fi
 
 # `npm pkg fix` normalizes package.json (e.g., sorts keys, trims invalid
-# fields). Stage any changes so the commit reflects the normalized file.
-if command -v npm >/dev/null 2>&1; then
+# fields). Only run it when package.json is already staged, so the hook never
+# pulls unrelated working-tree edits into a commit.
+if has_staged_changes package.json && command -v npm >/dev/null 2>&1; then
   npm pkg fix || true
   git add package.json 2>/dev/null || true
 fi
-
-has_staged_changes() {
-  git diff --cached --quiet -- "$@" || return 0
-  return 1
-}
 
 run_script() {
   local script_name="$1"
@@ -41,27 +42,18 @@ EOF
   fi
 }
 
-# Format staged files with prettier (filter out symlinks - prettier refuses to format them)
-if command -v pnpm >/dev/null 2>&1; then
-  PRETTIER_CMD=(pnpm exec prettier)
-elif command -v npm >/dev/null 2>&1; then
-  PRETTIER_CMD=(npx prettier)
-else
-  echo "No package manager available to run prettier" >&2
-  exit 1
-fi
-
 if [[ -f pnpm-lock.yaml ]] && command -v pnpm >/dev/null 2>&1; then
   if has_staged_changes package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+    # Order matters: dedupe is the cheaper read-only check, so fail fast on
+    # lockfile bloat before the heavier lockfile-vs-package.json sync check.
     pnpm dedupe --check
     pnpm install --frozen-lockfile --ignore-scripts
   fi
 fi
 
-git diff --cached --name-only --diff-filter=ACMR -z \
-  | xargs -0 bash -c 'for f; do [[ -L "$f" ]] || printf "%s\0" "$f"; done' _ \
-  | xargs -0 -r "${PRETTIER_CMD[@]}" --write --ignore-unknown --log-level warn --
-git update-index --again
+if has_staged_changes; then
+  run_script "format:check"
+fi
 
 run_script "knip"
 run_script "typecheck"

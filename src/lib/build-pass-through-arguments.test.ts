@@ -22,13 +22,7 @@ describe("buildPassThroughArguments", () => {
   });
 
   it("preserves other flags and arguments", () => {
-    const input = [
-      "--config-path",
-      "./config/fta.json",
-      "--output-limit",
-      "100",
-      "src",
-    ];
+    const input = ["--config-path", "./config/fta.json", "--output-limit", "100", "src"];
     expect(buildPassThroughArguments(input)).toEqual([
       "--config-path",
       "./config/fta.json",
@@ -65,10 +59,7 @@ describe("buildPassThroughArguments", () => {
 
   it("handles --threshold followed by another flag", () => {
     const input = ["--threshold", "--config-path", "./config/fta.json"];
-    expect(buildPassThroughArguments(input)).toEqual([
-      "--config-path",
-      "./config/fta.json",
-    ]);
+    expect(buildPassThroughArguments(input)).toEqual(["--config-path", "./config/fta.json"]);
   });
 
   it("handles --threshold with negative number value", () => {
@@ -89,12 +80,7 @@ describe("buildPassThroughArguments", () => {
 
   it("preserves flags that contain help/version but are not exact matches", () => {
     const input = ["--helper", "--versions", "-hv", "src"];
-    expect(buildPassThroughArguments(input)).toEqual([
-      "--helper",
-      "--versions",
-      "-hv",
-      "src",
-    ]);
+    expect(buildPassThroughArguments(input)).toEqual(["--helper", "--versions", "-hv", "src"]);
   });
 
   it("strips short verbose flag -v", () => {

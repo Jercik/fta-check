@@ -3,26 +3,16 @@
 import { Command } from "@commander-js/extra-typings";
 import packageJson from "../package.json" with { type: "json" };
 import { buildPassThroughArguments } from "./lib/build-pass-through-arguments.js";
-import {
-  DEFAULT_THRESHOLD,
-  getViolations,
-  parseThresholdValue,
-} from "./lib/fta-check.js";
+import { DEFAULT_THRESHOLD, getViolations, parseThresholdValue } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
 
-function run(
-  threshold: number,
-  ftaArguments: string[],
-  verbose: boolean,
-): number {
+function run(threshold: number, ftaArguments: string[], verbose: boolean): number {
   try {
     const violations = getViolations(threshold, ftaArguments);
 
     if (violations.length === 0) {
       if (verbose) {
-        console.error(
-          `All files pass FTA threshold check (threshold: ${threshold.toString()})`,
-        );
+        console.error(`All files pass FTA threshold check (threshold: ${threshold.toString()})`);
       }
       return 0;
     }
@@ -30,9 +20,7 @@ function run(
     printReport(violations, threshold);
     return 1;
   } catch (error) {
-    console.error(
-      `Error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     return 1;
   }
 }
@@ -56,11 +44,7 @@ function main(argv: string[]): void {
     .action((options) => {
       const raw = argv.slice(2);
       const passThrough = buildPassThroughArguments(raw);
-      const exitCode = run(
-        options.threshold,
-        passThrough,
-        options.verbose ?? false,
-      );
+      const exitCode = run(options.threshold, passThrough, options.verbose ?? false);
       process.exitCode = exitCode;
     })
     .parse(argv);

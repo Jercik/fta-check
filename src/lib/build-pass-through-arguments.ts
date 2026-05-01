@@ -5,14 +5,21 @@
 export function buildPassThroughArguments(raw: string[]): string[] {
   const out: string[] = [];
   for (let index = 0; index < raw.length; index++) {
-    const a = raw[index] as string;
+    const a = raw[index];
+    if (a === undefined) {
+      continue;
+    }
     // Strip our own flag and its value
     if (a === "--threshold") {
       const next = raw[index + 1];
-      if (next !== undefined && !next.startsWith("-")) index++;
+      if (next !== undefined && !next.startsWith("-")) {
+        index++;
+      }
       continue;
     }
-    if (a.startsWith("--threshold=")) continue;
+    if (a.startsWith("--threshold=")) {
+      continue;
+    }
     // Let commander handle help/version/verbose, do not forward
     if (["-h", "--help", "-V", "--version", "-v", "--verbose"].includes(a)) {
       continue;

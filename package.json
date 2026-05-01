@@ -2,33 +2,26 @@
   "name": "fta-check",
   "version": "1.0.1",
   "description": "Thin wrapper around FTA (Fast TypeScript Analyzer) that provides actionable error messages for automated code quality checks and AI agent guidance",
-  "author": "Łukasz Jerciński",
-  "license": "MIT",
-  "scripts": {
-    "prepack": "pnpm run clean && pnpm run build",
-    "prepare": "git config core.hooksPath .githooks",
-    "build": "tsc --build tsconfig.app.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
-    "dev": "tsc --build tsconfig.app.json --watch",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "fta": "fta-check",
-    "knip": "knip",
-    "lint": "eslint",
-    "start": "node ./bin/fta-check",
-    "test": "vitest run",
-    "typecheck": "tsc -b --noEmit"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Jercik/fta-check.git"
-  },
+  "keywords": [
+    "analyzer",
+    "code-quality",
+    "complexity",
+    "cyclomatic-complexity",
+    "fta",
+    "halstead",
+    "maintainability",
+    "typescript"
+  ],
   "homepage": "https://github.com/Jercik/fta-check#readme",
   "bugs": {
     "url": "https://github.com/Jercik/fta-check/issues"
   },
-  "type": "module",
-  "main": "./dist/cli.js",
+  "license": "MIT",
+  "author": "Łukasz Jerciński",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jercik/fta-check.git"
+  },
   "bin": {
     "fta-check": "bin/fta-check"
   },
@@ -38,22 +31,22 @@
     "README.md",
     "LICENSE"
   ],
-  "keywords": [
-    "typescript",
-    "analyzer",
-    "complexity",
-    "fta",
-    "code-quality",
-    "maintainability",
-    "halstead",
-    "cyclomatic-complexity"
-  ],
-  "packageManager": "pnpm@10.33.0",
-  "engines": {
-    "node": ">=22.19.0"
-  },
-  "peerDependencies": {
-    "fta-cli": "^3.0.0"
+  "type": "module",
+  "main": "./dist/cli.js",
+  "scripts": {
+    "build": "tsgo --build tsconfig.app.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "tsgo --build tsconfig.app.json --watch",
+    "format": "oxfmt --config .oxfmtrc.json .",
+    "format:check": "oxfmt --check --config .oxfmtrc.json .",
+    "fta": "fta-check",
+    "knip": "knip",
+    "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
+    "prepack": "pnpm run clean && pnpm run build",
+    "prepare": "git config core.hooksPath .githooks",
+    "start": "node ./bin/fta-check",
+    "test": "vitest run",
+    "typecheck": "tsgo -b --noEmit"
   },
   "dependencies": {
     "@commander-js/extra-typings": "^14.0.0",
@@ -62,14 +55,22 @@
   "devDependencies": {
     "@total-typescript/ts-reset": "^0.6.1",
     "@types/node": "^25.6.0",
-    "eslint": "^10.2.1",
-    "eslint-config-axkit": "^1.7.0",
+    "@typescript/native-preview": "beta",
     "fta-check": "^1.5.2",
     "fta-cli": "^3.0.0",
     "knip": "^6.5.0",
-    "prettier": "3.8.3",
+    "oxfmt": "^0.46.0",
+    "oxlint": "^1.61.0",
+    "oxlint-config-j4k": "^2.3.0",
+    "oxlint-tsgolint": "^0.22.0",
     "semantic-release": "^25.0.3",
-    "typescript": "^6.0.3",
     "vitest": "^4.1.4"
-  }
+  },
+  "peerDependencies": {
+    "fta-cli": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@10.33.0"
 }

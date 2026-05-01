@@ -5,9 +5,7 @@ function generateSuggestions(result: FtaResult): string[] {
     "Extract functionality into separate files (most effective for reducing FTA)",
   ];
   if (result.line_count > 100) {
-    suggestions.push(
-      "Identify reusable components/utilities that could be extracted and shared",
-    );
+    suggestions.push("Identify reusable components/utilities that could be extracted and shared");
   }
   if (result.cyclo > 10) {
     suggestions.push(
@@ -15,17 +13,11 @@ function generateSuggestions(result: FtaResult): string[] {
     );
   }
   if (result.line_count > 300) {
-    suggestions.push(
-      "This file is too large - split into 3-4 focused modules by responsibility",
-    );
+    suggestions.push("This file is too large - split into 3-4 focused modules by responsibility");
   } else if (result.line_count > 200) {
-    suggestions.push(
-      "Consider splitting into 2-3 modules by feature or concern",
-    );
+    suggestions.push("Consider splitting into 2-3 modules by feature or concern");
   } else if (result.line_count > 100) {
-    suggestions.push(
-      "Look for groups of related functions to extract as modules",
-    );
+    suggestions.push("Look for groups of related functions to extract as modules");
   }
   if (result.halstead.difficulty > 40) {
     suggestions.push(
@@ -37,9 +29,7 @@ function generateSuggestions(result: FtaResult): string[] {
       `High bug probability (${result.halstead.bugs.toFixed(2)}) - split complex logic for better testing`,
     );
   }
-  suggestions.push(
-    "Note: Small refactors within the file won't significantly reduce FTA",
-  );
+  suggestions.push("Note: Small refactors within the file won't significantly reduce FTA");
   return suggestions;
 }
 
@@ -65,9 +55,7 @@ ${suggestions}
 }
 
 export function printReport(violations: FtaResult[], threshold: number): void {
-  console.error(
-    "\nThe code was statically analyzed and several complexity issues were found:\n",
-  );
+  console.error("\nThe code was statically analyzed and several complexity issues were found:\n");
   console.error(`FTA Score Violations (threshold: ${threshold.toString()})\n`);
   console.error(
     "The FTA score combines Halstead complexity, cyclomatic complexity, and lines of code",
@@ -88,7 +76,9 @@ export function printReport(violations: FtaResult[], threshold: number): void {
 
   for (const [index, v] of violations.entries()) {
     console.error(formatViolation(v));
-    if (index < violations.length - 1) console.error();
+    if (index < violations.length - 1) {
+      console.error();
+    }
   }
 
   console.error(

@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortPackageJson": {
+    "sortScripts": true
+  },
+  "ignorePatterns": ["pnpm-lock.yaml", "**/*.hbs", ".agents/", ".claude/", "AGENTS.md", "CLAUDE.md"]
+}

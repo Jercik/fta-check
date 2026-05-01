@@ -69,10 +69,7 @@ describe("readConfigFile", () => {
 
   it("reads and parses fta.json when it exists", () => {
     const config = { exclude_filenames: ["*.custom.ts"] };
-    writeFileSync(
-      path.join(temporaryDirectory, "fta.json"),
-      JSON.stringify(config),
-    );
+    writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(config));
 
     const result = readConfigFile(temporaryDirectory);
     expect(result).toEqual(config);
@@ -107,10 +104,7 @@ describe("loadConfig", () => {
 
   it("merges repo config with defaults", () => {
     const repoConfig = { score_cap: 200 };
-    writeFileSync(
-      path.join(temporaryDirectory, "fta.json"),
-      JSON.stringify(repoConfig),
-    );
+    writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
     const result = loadConfig(temporaryDirectory);
     expect(result.score_cap).toBe(200);
@@ -119,10 +113,7 @@ describe("loadConfig", () => {
 
   it("allows repo config to clear exclude_filenames with empty array", () => {
     const repoConfig = { exclude_filenames: [] };
-    writeFileSync(
-      path.join(temporaryDirectory, "fta.json"),
-      JSON.stringify(repoConfig),
-    );
+    writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
     const result = loadConfig(temporaryDirectory);
     expect(result.exclude_filenames).toEqual([]);

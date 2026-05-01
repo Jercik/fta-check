@@ -6,7 +6,7 @@ import path from "node:path";
  * FTA configuration schema matching fta.json format.
  * All keys are optional - missing keys use FTA's built-in defaults.
  */
-export type FtaConfig = {
+export interface FtaConfig {
   output_limit?: number;
   score_cap?: number;
   include_comments?: boolean;
@@ -14,7 +14,7 @@ export type FtaConfig = {
   exclude_directories?: string[];
   exclude_filenames?: string[];
   extensions?: string[];
-};
+}
 
 /**
  * Default config applied by fta-check.
@@ -30,7 +30,9 @@ export const DEFAULT_CONFIG: FtaConfig = {
  */
 export function readConfigFile(directory: string): FtaConfig | undefined {
   const configPath = path.join(directory, "fta.json");
-  if (!existsSync(configPath)) return undefined;
+  if (!existsSync(configPath)) {
+    return undefined;
+  }
 
   try {
     const content = readFileSync(configPath, "utf8");
@@ -50,11 +52,10 @@ export function readConfigFile(directory: string): FtaConfig | undefined {
  * If a key exists in repoConfig, it completely replaces the default.
  * Keys not in repoConfig use the default value.
  */
-export function mergeConfig(
-  defaultConfig: FtaConfig,
-  repoConfig?: FtaConfig,
-): FtaConfig {
-  if (repoConfig === undefined) return { ...defaultConfig };
+export function mergeConfig(defaultConfig: FtaConfig, repoConfig?: FtaConfig): FtaConfig {
+  if (repoConfig === undefined) {
+    return { ...defaultConfig };
+  }
 
   // Spread operator handles "replace per key" - repo config overwrites defaults
   return { ...defaultConfig, ...repoConfig };
