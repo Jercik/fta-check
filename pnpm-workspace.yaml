@@ -1,2 +1,3 @@
-onlyBuiltDependencies:
-  - esbuild
+enableGlobalVirtualStore: true
+allowBuilds:
+  esbuild: true
