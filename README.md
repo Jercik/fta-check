@@ -127,6 +127,12 @@ All files pass FTA threshold check (threshold: 60)
 
 ## Development
 
+The `oxlint-config-j4k` dev dependency lives on the private registry `npm.j4k.dev`, and `pnpm-workspace.yaml` routes installs through it. Before `pnpm install` can resolve it, add an auth token for that registry to your user `~/.npmrc`:
+
+```
+//npm.j4k.dev/:_authToken=YOUR_TOKEN
+```
+
 ```bash
 # Install dependencies
 pnpm install
