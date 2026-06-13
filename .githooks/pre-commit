@@ -53,8 +53,11 @@ run_package_script() {
   elif command -v npm >/dev/null 2>&1; then
     npm run "$script_name"
   else
+    # return, not exit: callers redirect this function's output into a log
+    # they only dump on failure — exit here would abort before the dump,
+    # leaving the commit to die with no visible error.
     echo "No package manager available to run script: $script_name" >&2
-    exit 1
+    return 127
   fi
 }
 
@@ -79,7 +82,7 @@ if [[ -f pnpm-lock.yaml ]] && command -v pnpm >/dev/null 2>&1; then
   if has_staged_changes package.json pnpm-lock.yaml pnpm-workspace.yaml; then
     # Order matters: dedupe is the cheaper read-only check, so fail fast on
     # lockfile bloat before the heavier lockfile-vs-package.json sync check.
-    pnpm dedupe --check
+    pnpm dedupe --check --config.confirm-modules-purge=false
     pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false
   fi
 fi
