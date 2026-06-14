@@ -11,13 +11,14 @@ on:
         required: true
         type: number
 
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
 jobs:
   approach:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.action == 'opened' }}
-    permissions:
-      contents: read
-      pull-requests: write
-      actions: read
     uses: Jercik/axgithub/.github/workflows/pr-review.yml@v1
     with:
       label: approach
@@ -28,10 +29,6 @@ jobs:
       AXRECIPE_API_KEY: ${{ secrets.AXRECIPE_API_KEY }}
 
   code:
-    permissions:
-      contents: read
-      pull-requests: write
-      actions: read
     uses: Jercik/axgithub/.github/workflows/pr-review.yml@v1
     with:
       label: code

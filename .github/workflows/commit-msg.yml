@@ -36,12 +36,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          args=(conventional-commit-msg)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npm exec --yes --package=conventional-commit-msg@${COMMITLINT_PACKAGE_VERSION} -- \
-              conventional-commit-msg \
-              --from "${{ github.event.pull_request.base.sha }}" \
+            args+=(
+              --from "${{ github.event.pull_request.base.sha }}"
               --to "${{ github.event.pull_request.head.sha }}"
+            )
           else
-            npm exec --yes --package=conventional-commit-msg@${COMMITLINT_PACKAGE_VERSION} -- \
-              conventional-commit-msg --last
+            args+=(--last)
           fi
+
+          npm exec --yes "--package=conventional-commit-msg@${COMMITLINT_PACKAGE_VERSION}" -- "${args[@]}"
