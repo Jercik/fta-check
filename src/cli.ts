@@ -2,9 +2,20 @@
 
 import { Command } from "@commander-js/extra-typings";
 import packageJson from "../package.json" with { type: "json" };
-import { buildPassThroughArguments } from "./lib/build-pass-through-arguments.js";
 import { DEFAULT_THRESHOLD, getViolations, parseThresholdValue } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
+import { stripKnownArguments } from "./lib/strip-known-arguments.js";
+
+// Flags the commander wrapper consumes itself; they must not be forwarded to fta.
+const CLI_OWNED_ARGUMENTS = [
+  { name: "--threshold", takesValue: true },
+  { name: "-h", takesValue: false },
+  { name: "--help", takesValue: false },
+  { name: "-V", takesValue: false },
+  { name: "--version", takesValue: false },
+  { name: "-v", takesValue: false },
+  { name: "--verbose", takesValue: false },
+] as const;
 
 function run(threshold: number, ftaArguments: string[], verbose: boolean): number {
   try {
@@ -43,7 +54,7 @@ function main(argv: string[]): void {
     .option("-v, --verbose", "Show success message when all files pass")
     .action((options) => {
       const raw = argv.slice(2);
-      const passThrough = buildPassThroughArguments(raw);
+      const passThrough = stripKnownArguments(raw, CLI_OWNED_ARGUMENTS);
       const exitCode = run(options.threshold, passThrough, options.verbose ?? false);
       process.exitCode = exitCode;
     })
