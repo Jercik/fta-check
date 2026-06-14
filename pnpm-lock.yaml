@@ -24,9 +24,6 @@ importers:
       '@typescript/native-preview':
         specifier: beta
         version: 7.0.0-dev.20260421.2
-      fta-check:
-        specifier: ^1.5.2
-        version: 1.5.2(fta-cli@3.0.0)
       fta-cli:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1425,13 +1422,6 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
-
-  fta-check@1.5.2:
-    resolution: {integrity: sha512-eeWpHmafanalQ7oQFDQQeniGwK7J8bkTZXyVylMqTAs3oSHoUl1JWAaJ3S2KO5Hbpc7jRAf6e66QyDeyjtkGSQ==}
-    engines: {node: '>=22.19.0'}
-    hasBin: true
-    peerDependencies:
-      fta-cli: ^3.0.0
 
   fta-cli@3.0.0:
     resolution: {integrity: sha512-SBmoqIwbN7PLDmwmrPgjr6Z6/S9jPhNz5TCPmEVFkIaeloc/T2WXLeeXqhG1+C0UQxpOfGrC7CUb4friqbc2kQ==}
@@ -3506,12 +3496,6 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
-
-  fta-check@1.5.2(fta-cli@3.0.0):
-    dependencies:
-      '@commander-js/extra-typings': 14.0.0(commander@14.0.3)
-      commander: 14.0.3
-      fta-cli: 3.0.0
 
   fta-cli@3.0.0: {}
 
