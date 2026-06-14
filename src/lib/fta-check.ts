@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
+import { stripKnownArguments } from "./strip-known-arguments.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage = "--threshold requires a non-empty value (e.g., --threshold=55)";
+const FTA_CHECK_ARGUMENTS = [{ name: "--json", takesValue: false }] as const;
 
 export function parseThresholdValue(value: string): number {
   if (value.trim() === "") {
@@ -15,31 +17,6 @@ export function parseThresholdValue(value: string): number {
     throw new TypeError("--threshold must be a positive number");
   }
   return threshold;
-}
-
-export function parseThreshold(arguments_: string[]): number {
-  const index = arguments_.findIndex(
-    (argument) => argument === "--threshold" || argument.startsWith("--threshold="),
-  );
-  if (index === -1) {
-    return DEFAULT_THRESHOLD;
-  }
-
-  const argument = arguments_[index];
-  if (argument === undefined) {
-    throw new TypeError(missingValueMessage);
-  }
-
-  if (argument === "--threshold") {
-    const nextValue = arguments_[index + 1];
-    if (nextValue === undefined || nextValue.startsWith("--")) {
-      throw new TypeError(missingValueMessage);
-    }
-    return parseThresholdValue(nextValue);
-  }
-
-  const [, value = ""] = argument.split("=", 2);
-  return parseThresholdValue(value);
 }
 
 type ExecSyncError = Error & {
@@ -57,29 +34,6 @@ function hasPositionalPath(arguments_: string[]): boolean {
   return false;
 }
 
-function stripArgument(arguments_: string[], name: string): string[] {
-  const out: string[] = [];
-  for (let index = 0; index < arguments_.length; index++) {
-    const a = arguments_[index];
-    if (a === undefined) {
-      continue;
-    }
-    if (a === name) {
-      // skip this and its value (if any)
-      const next = arguments_[index + 1];
-      if (next && !next.startsWith("-")) {
-        index++;
-      }
-      continue;
-    }
-    if (a.startsWith(`${name}=`)) {
-      continue;
-    }
-    out.push(a);
-  }
-  return out;
-}
-
 /**
  * Checks if user provided --config-path or -c flag.
  */
@@ -92,8 +46,7 @@ function hasUserConfigPath(arguments_: string[]): boolean {
 
 export function getViolations(threshold: number, ftaArguments: string[] = []): FtaResult[] {
   try {
-    // Strip --json (we always add it for parsing)
-    const argumentsWithoutJson = stripArgument(ftaArguments, "--json");
+    const argumentsWithoutJson = stripKnownArguments(ftaArguments, FTA_CHECK_ARGUMENTS);
 
     // Check for positional path before building final arguments
     const needsDefaultPath = !hasPositionalPath(argumentsWithoutJson);
