@@ -39,6 +39,7 @@
     "dev": "tsgo --build tsconfig.app.json --watch",
     "format": "oxfmt --config .oxfmtrc.json .",
     "format:check": "oxfmt --check --config .oxfmtrc.json .",
+    "fta": "pnpm run build && node ./bin/fta-check",
     "knip": "knip",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
     "prepack": "pnpm run clean && pnpm run build",
