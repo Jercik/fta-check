@@ -2,7 +2,6 @@
 
 import { Command } from "@commander-js/extra-typings";
 import packageJson from "../package.json" with { type: "json" };
-import { buildPassThroughArguments } from "./lib/build-pass-through-arguments.js";
 import { DEFAULT_THRESHOLD, getViolations, parseThresholdValue } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
 
@@ -41,10 +40,8 @@ function main(argv: string[]): void {
       DEFAULT_THRESHOLD,
     )
     .option("-v, --verbose", "Show success message when all files pass")
-    .action((options) => {
-      const raw = argv.slice(2);
-      const passThrough = buildPassThroughArguments(raw);
-      const exitCode = run(options.threshold, passThrough, options.verbose ?? false);
+    .action((options, command) => {
+      const exitCode = run(options.threshold, command.args, options.verbose ?? false);
       process.exitCode = exitCode;
     })
     .parse(argv);
