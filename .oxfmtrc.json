@@ -9,6 +9,7 @@
     ".agents/",
     ".claude/",
     ".clawpatch/",
+    ".codex/",
     "AGENTS.md",
     "CLAUDE.md"
   ]

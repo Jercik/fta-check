@@ -14,7 +14,7 @@ describe("writeConfigToTemporaryFile", () => {
     expect(filePath).toMatch(/fta\.json$/u);
 
     const content = JSON.parse(readFileSync(filePath, "utf8"));
-    expect(content).toEqual({ exclude_filenames: ["*.test.ts"] });
+    expect(content).toStrictEqual({ exclude_filenames: ["*.test.ts"] });
   });
 });
 
@@ -27,7 +27,7 @@ describe("loadConfig", () => {
 
   it("returns default config when no fta.json exists", () => {
     const result = loadConfig(temporaryDirectory);
-    expect(result).toEqual({ exclude_filenames: ["*.test.{ts,tsx}"] });
+    expect(result).toStrictEqual({ exclude_filenames: ["*.test.{ts,tsx}"] });
   });
 
   it("merges repo config with defaults", () => {
@@ -35,7 +35,7 @@ describe("loadConfig", () => {
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
     const result = loadConfig(temporaryDirectory);
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       exclude_filenames: ["*.test.{ts,tsx}"],
       score_cap: 200,
     });
@@ -46,7 +46,7 @@ describe("loadConfig", () => {
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
     const result = loadConfig(temporaryDirectory);
-    expect(result).toEqual({ exclude_filenames: [] });
+    expect(result).toStrictEqual({ exclude_filenames: [] });
   });
 
   it("allows repo config to replace exclude_filenames", () => {
@@ -54,7 +54,7 @@ describe("loadConfig", () => {
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
     const result = loadConfig(temporaryDirectory);
-    expect(result).toEqual({ exclude_filenames: ["*.spec.ts"] });
+    expect(result).toStrictEqual({ exclude_filenames: ["*.spec.ts"] });
   });
 
   it("throws a useful error for invalid fta.json", () => {
