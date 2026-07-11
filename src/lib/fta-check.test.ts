@@ -19,7 +19,7 @@ describe("parseThresholdValue", () => {
 
 describe("buildFtaArguments", () => {
   it("injects --json and the config path, appending the default path when none is given", () => {
-    expect(buildFtaArguments([], "/tmp/fta.json")).toEqual([
+    expect(buildFtaArguments([], "/tmp/fta.json")).toStrictEqual([
       "--json",
       "--config-path",
       "/tmp/fta.json",
@@ -28,7 +28,7 @@ describe("buildFtaArguments", () => {
   });
 
   it("drops a user-supplied --json so it is not forwarded to fta twice", () => {
-    expect(buildFtaArguments(["--json", "src"], "/tmp/fta.json")).toEqual([
+    expect(buildFtaArguments(["--json", "src"], "/tmp/fta.json")).toStrictEqual([
       "--json",
       "--config-path",
       "/tmp/fta.json",
@@ -37,7 +37,7 @@ describe("buildFtaArguments", () => {
   });
 
   it("omits the injected config path when configPath is null", () => {
-    expect(buildFtaArguments(["--config-path", "./fta.json", "src"], null)).toEqual([
+    expect(buildFtaArguments(["--config-path", "./fta.json", "src"], null)).toStrictEqual([
       "--json",
       "--config-path",
       "./fta.json",
