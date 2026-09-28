@@ -12,7 +12,7 @@ pnpm add -D fta-check fta-cli
 yarn add -D fta-check fta-cli
 ```
 
-**Note**: `fta-cli` is a peer dependency and must be installed alongside `fta-check`. The `fta-check` CLI executes the `fta` binary directly from your PATH (no hard dependency on pnpm). Ensure `fta-cli` is installed locally so `fta` is available.
+**Note**: `fta-cli` is a peer dependency and must be installed alongside `fta-check`. `fta-check` resolves the installed `fta-cli` package and runs its platform binary directly, bypassing the `fta` command, which fails when the install path contains a space.
 
 ## Usage
 
@@ -70,9 +70,8 @@ Use `--threshold` (not `score_cap`) with `fta-check` to control which files are 
 
 ### Troubleshooting
 
-- Error: `FTA CLI not found on PATH`
+- Error: `fta-cli not found`
   - Install the peer dependency in your project: `npm i -D fta-cli` (or `yarn add -D fta-cli`, `pnpm add -D fta-cli`).
-  - Verify `npx fta --version` works in your project directory.
 
 ## What does it do?
 
