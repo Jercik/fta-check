@@ -4,11 +4,10 @@ import { Command } from "@commander-js/extra-typings";
 import packageJson from "../package.json" with { type: "json" };
 import { DEFAULT_THRESHOLD, getViolations, parseThresholdValue } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
-import { resolveFtaBinary } from "./lib/resolve-fta-binary.js";
 
 function run(threshold: number, ftaArguments: string[], verbose: boolean): number {
   try {
-    const violations = getViolations(resolveFtaBinary(), threshold, ftaArguments);
+    const violations = getViolations(threshold, ftaArguments);
 
     if (violations.length === 0) {
       if (verbose) {

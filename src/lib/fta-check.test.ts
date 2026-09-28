@@ -75,7 +75,7 @@ describe("getViolations", () => {
     copyFileSync(resolveFtaBinary(), ftaBinary);
     writeFileSync(path.join(projectDirectory, "classify.ts"), branchySource);
 
-    expect(getViolations(ftaBinary, 1, [projectDirectory])).toMatchObject([
+    expect(getViolations(1, [projectDirectory], ftaBinary)).toMatchObject([
       { file_name: "classify.ts" },
     ]);
   });

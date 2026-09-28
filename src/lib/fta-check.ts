@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
+import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage = "--threshold requires a non-empty value (e.g., --threshold=55)";
@@ -56,9 +57,9 @@ export function buildFtaArguments(ftaArguments: string[], configPath: string | n
 }
 
 export function getViolations(
-  ftaBinary: string,
   threshold: number,
   ftaArguments: string[],
+  ftaBinary: string = resolveFtaBinary(),
 ): FtaResult[] {
   try {
     const configPath = hasUserConfigPath(ftaArguments)
