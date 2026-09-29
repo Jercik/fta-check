@@ -1,5 +1,20 @@
-import { describe, it, expect } from "vitest";
-import { buildFtaArguments, parseThresholdValue } from "./fta-check.js";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { describe, it, expect, onTestFinished } from "vitest";
+import { buildFtaArguments, getViolations, parseThresholdValue } from "./fta-check.js";
+import { resolveFtaBinary } from "./resolve-fta-binary.js";
+
+const branchySource = `export function classify(value: number): string {
+  if (value > 10) {
+    return "large";
+  }
+  if (value > 5) {
+    return "medium";
+  }
+  return "small";
+}
+`;
 
 describe("parseThresholdValue", () => {
   it("parses valid values", () => {
@@ -42,6 +57,26 @@ describe("buildFtaArguments", () => {
       "--config-path",
       "./fta.json",
       "src",
+    ]);
+  });
+});
+
+describe("getViolations", () => {
+  it("runs fta when the binary path and the project path contain spaces", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "fta-check-test-"));
+    onTestFinished(() => {
+      rmSync(root, { recursive: true, force: true });
+    });
+    const binaryDirectory = path.join(root, "Application Support");
+    const projectDirectory = path.join(root, "project dir");
+    mkdirSync(binaryDirectory);
+    mkdirSync(projectDirectory);
+    const ftaBinary = path.join(binaryDirectory, path.basename(resolveFtaBinary()));
+    copyFileSync(resolveFtaBinary(), ftaBinary);
+    writeFileSync(path.join(projectDirectory, "classify.ts"), branchySource);
+
+    expect(getViolations(1, [projectDirectory], ftaBinary)).toMatchObject([
+      { file_name: "classify.ts" },
     ]);
   });
 });

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
+import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
 export const DEFAULT_THRESHOLD = 55;
 const missingValueMessage = "--threshold requires a non-empty value (e.g., --threshold=55)";
@@ -55,14 +56,18 @@ export function buildFtaArguments(ftaArguments: string[], configPath: string | n
   return finalArguments;
 }
 
-export function getViolations(threshold: number, ftaArguments: string[] = []): FtaResult[] {
+export function getViolations(
+  threshold: number,
+  ftaArguments: string[],
+  ftaBinary: string = resolveFtaBinary(),
+): FtaResult[] {
   try {
     const configPath = hasUserConfigPath(ftaArguments)
       ? null
       : writeConfigToTemporaryFile(loadConfig(process.cwd()));
     const finalArguments = buildFtaArguments(ftaArguments, configPath);
 
-    const output = execFileSync("fta", finalArguments, {
+    const output = execFileSync(ftaBinary, finalArguments, {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -70,10 +75,7 @@ export function getViolations(threshold: number, ftaArguments: string[] = []): F
   } catch (error_) {
     const error = error_ as ExecSyncError;
     if ((error as unknown as { code?: string }).code === "ENOENT") {
-      throw new Error(
-        "FTA CLI not found on PATH. Please install 'fta-cli' (peer dependency) in your project and re-run: npm i -D fta-cli",
-        { cause: error_ },
-      );
+      throw new Error(`FTA binary not found at ${ftaBinary}`, { cause: error_ });
     }
     if (typeof error.status === "number" && error.stderr) {
       const stderrText = Buffer.isBuffer(error.stderr) ? error.stderr.toString() : error.stderr;
