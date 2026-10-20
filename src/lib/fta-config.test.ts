@@ -1,20 +1,36 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
-import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
 
-describe("writeConfigToTemporaryFile", () => {
-  it("writes config to a temp file and returns the path", () => {
-    const config = { exclude_filenames: ["*.test.ts"] };
-    const filePath = writeConfigToTemporaryFile(config);
+describe("withTemporaryConfigFile", () => {
+  it("passes the callback a fta.json holding the config and returns the callback's result", () => {
+    const result = withTemporaryConfigFile({ exclude_filenames: ["*.test.ts"] }, (configPath) => ({
+      configPath,
+      content: JSON.parse(readFileSync(configPath, "utf8")),
+    }));
 
-    expect(existsSync(filePath)).toBe(true);
-    expect(filePath).toContain("fta-check-");
-    expect(filePath).toMatch(/fta\.json$/u);
+    expect(result.configPath).toMatch(/fta-check-[^/]+\/fta\.json$/u);
+    expect(result.content).toStrictEqual({ exclude_filenames: ["*.test.ts"] });
+  });
 
-    const content = JSON.parse(readFileSync(filePath, "utf8"));
-    expect(content).toStrictEqual({ exclude_filenames: ["*.test.ts"] });
+  it("removes the temporary directory once the callback returns", () => {
+    const configPath = withTemporaryConfigFile({}, (path_) => path_);
+
+    expect(existsSync(path.dirname(configPath))).toBe(false);
+  });
+
+  it("removes the temporary directory and rethrows when the callback throws", () => {
+    let configPath = "";
+
+    expect(() =>
+      withTemporaryConfigFile({}, (path_) => {
+        configPath = path_;
+        throw new Error("fta failed");
+      }),
+    ).toThrow("fta failed");
+    expect(existsSync(path.dirname(configPath))).toBe(false);
   });
 });
 
@@ -23,6 +39,10 @@ describe("loadConfig", () => {
 
   beforeEach(() => {
     temporaryDirectory = mkdtempSync(path.join(tmpdir(), "fta-config-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
   });
 
   it("returns default config when no fta.json exists", () => {

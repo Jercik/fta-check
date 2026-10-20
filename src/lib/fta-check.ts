@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import type { FtaResult } from "../fta-types.js";
-import { loadConfig, writeConfigToTemporaryFile } from "./fta-config.js";
+import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
 export const DEFAULT_THRESHOLD = 55;
@@ -61,16 +61,16 @@ export function getViolations(
   ftaArguments: string[],
   ftaBinary: string = resolveFtaBinary(),
 ): FtaResult[] {
-  try {
-    const configPath = hasUserConfigPath(ftaArguments)
-      ? null
-      : writeConfigToTemporaryFile(loadConfig(process.cwd()));
-    const finalArguments = buildFtaArguments(ftaArguments, configPath);
-
-    const output = execFileSync(ftaBinary, finalArguments, {
+  const runFta = (configPath: string | null): string =>
+    execFileSync(ftaBinary, buildFtaArguments(ftaArguments, configPath), {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
     });
+
+  try {
+    const output = hasUserConfigPath(ftaArguments)
+      ? runFta(null)
+      : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
     return (JSON.parse(output) as FtaResult[]).filter((r) => r.fta_score > threshold);
   } catch (error_) {
     const error = error_ as ExecSyncError;
