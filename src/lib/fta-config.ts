@@ -61,10 +61,6 @@ function mergeConfig(defaultConfig: FtaConfig, repoConfig?: FtaConfig): FtaConfi
   return { ...defaultConfig, ...repoConfig };
 }
 
-/**
- * Writes config to a fresh temporary file, passes its path to `use`, and removes the file's
- * directory once `use` returns or throws.
- */
 export function withTemporaryConfigFile<T>(config: FtaConfig, use: (configPath: string) => T): T {
   const temporaryDirectory = mkdtempSync(path.join(tmpdir(), "fta-check-"));
   try {
