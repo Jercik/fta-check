@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -62,14 +62,18 @@ function mergeConfig(defaultConfig: FtaConfig, repoConfig?: FtaConfig): FtaConfi
 }
 
 /**
- * Writes config to a temporary file and returns the path.
- * The temp directory is created fresh each call.
+ * Writes config to a fresh temporary file, passes its path to `use`, and removes the file's
+ * directory once `use` returns or throws.
  */
-export function writeConfigToTemporaryFile(config: FtaConfig): string {
+export function withTemporaryConfigFile<T>(config: FtaConfig, use: (configPath: string) => T): T {
   const temporaryDirectory = mkdtempSync(path.join(tmpdir(), "fta-check-"));
-  const configPath = path.join(temporaryDirectory, "fta.json");
-  writeFileSync(configPath, JSON.stringify(config, undefined, 2));
-  return configPath;
+  try {
+    const configPath = path.join(temporaryDirectory, "fta.json");
+    writeFileSync(configPath, JSON.stringify(config, undefined, 2));
+    return use(configPath);
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 }
 
 /**

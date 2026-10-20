@@ -1,7 +1,15 @@
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, it, expect, onTestFinished } from "vitest";
+import { describe, it, expect, onTestFinished, vi } from "vitest";
 import { buildFtaArguments, getViolations, parseThresholdValue } from "./fta-check.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
@@ -78,5 +86,84 @@ describe("getViolations", () => {
     expect(getViolations(1, [projectDirectory], ftaBinary)).toMatchObject([
       { file_name: "classify.ts" },
     ]);
+  });
+});
+
+function createProjectDirectory(): string {
+  const root = mkdtempSync(path.join(tmpdir(), "fta-check-test-"));
+  onTestFinished(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+  const projectDirectory = path.join(root, "project");
+  mkdirSync(projectDirectory);
+  writeFileSync(path.join(projectDirectory, "classify.ts"), branchySource);
+  return projectDirectory;
+}
+
+/** Points os.tmpdir() at an empty directory, so anything a run leaves behind is visible there. */
+function redirectTemporaryDirectory(): string {
+  const scratchDirectory = mkdtempSync(path.join(tmpdir(), "fta-check-test-"));
+  vi.stubEnv("TMPDIR", scratchDirectory);
+  onTestFinished(() => {
+    vi.unstubAllEnvs();
+    rmSync(scratchDirectory, { recursive: true, force: true });
+  });
+  return scratchDirectory;
+}
+
+function createFakeFtaBinary(script: string): string {
+  const directory = mkdtempSync(path.join(tmpdir(), "fta-check-test-"));
+  onTestFinished(() => {
+    rmSync(directory, { recursive: true, force: true });
+  });
+  const binaryPath = path.join(directory, "fake-fta");
+  writeFileSync(binaryPath, script, { mode: 0o755 });
+  return binaryPath;
+}
+
+describe("getViolations temporary config directory", () => {
+  it("is removed after a successful run", () => {
+    const projectDirectory = createProjectDirectory();
+    const scratchDirectory = redirectTemporaryDirectory();
+
+    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
+      { file_name: "classify.ts" },
+    ]);
+    expect(readdirSync(scratchDirectory)).toStrictEqual([]);
+  });
+
+  it("is removed when the fta binary is missing", () => {
+    const projectDirectory = createProjectDirectory();
+    const scratchDirectory = redirectTemporaryDirectory();
+
+    expect(() =>
+      getViolations(1, [projectDirectory], path.join(scratchDirectory, "missing-fta")),
+    ).toThrow("FTA binary not found");
+    expect(readdirSync(scratchDirectory)).toStrictEqual([]);
+  });
+
+  it.each([
+    ["exits non-zero", "#!/bin/sh\necho boom >&2\nexit 3\n", "FTA CLI failed with exit code 3"],
+    ["prints unparseable JSON", "#!/bin/sh\necho not-json\n", "Failed to execute FTA CLI"],
+  ])("is removed when fta %s", (_case, script, message) => {
+    const projectDirectory = createProjectDirectory();
+    const ftaBinary = createFakeFtaBinary(script);
+    const scratchDirectory = redirectTemporaryDirectory();
+
+    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(message);
+    expect(readdirSync(scratchDirectory)).toStrictEqual([]);
+  });
+
+  it("is not created, and the user's config is kept, when --config-path is given", () => {
+    const projectDirectory = createProjectDirectory();
+    const userConfigPath = path.join(projectDirectory, "custom-fta.json");
+    writeFileSync(userConfigPath, "{}");
+    const scratchDirectory = redirectTemporaryDirectory();
+
+    expect(
+      getViolations(1, ["--config-path", userConfigPath, projectDirectory], resolveFtaBinary()),
+    ).toMatchObject([{ file_name: "classify.ts" }]);
+    expect(readdirSync(scratchDirectory)).toStrictEqual([]);
+    expect(existsSync(userConfigPath)).toBe(true);
   });
 });
