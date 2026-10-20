@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -121,6 +122,17 @@ function createFakeFtaBinary(script: string): string {
   return binaryPath;
 }
 
+const recordArgumentsScript = `#!/bin/sh
+printf '%s\\n' "$@" > "$(dirname "$0")/arguments.txt"
+echo '[]'
+`;
+
+function readRecordedArguments(ftaBinary: string): string[] {
+  return readFileSync(path.join(path.dirname(ftaBinary), "arguments.txt"), "utf8")
+    .trimEnd()
+    .split("\n");
+}
+
 describe("getViolations temporary config directory", () => {
   it("is removed after a successful run", () => {
     const projectDirectory = createProjectDirectory();
@@ -142,15 +154,14 @@ describe("getViolations temporary config directory", () => {
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
   });
 
-  it.each([
-    ["exits non-zero", "#!/bin/sh\necho boom >&2\nexit 3\n", "FTA CLI failed with exit code 3"],
-    ["prints unparseable JSON", "#!/bin/sh\necho not-json\n", "Failed to execute FTA CLI"],
-  ])("is removed when fta %s", (_case, script, message) => {
+  it("is removed when fta exits non-zero", () => {
     const projectDirectory = createProjectDirectory();
-    const ftaBinary = createFakeFtaBinary(script);
+    const ftaBinary = createFakeFtaBinary("#!/bin/sh\necho boom >&2\nexit 3\n");
     const scratchDirectory = redirectTemporaryDirectory();
 
-    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(message);
+    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(
+      "FTA CLI failed with exit code 3",
+    );
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
   });
 
@@ -158,12 +169,31 @@ describe("getViolations temporary config directory", () => {
     const projectDirectory = createProjectDirectory();
     const userConfigPath = path.join(projectDirectory, "custom-fta.json");
     writeFileSync(userConfigPath, "{}");
+    const ftaBinary = createFakeFtaBinary(recordArgumentsScript);
     const scratchDirectory = redirectTemporaryDirectory();
 
     expect(
-      getViolations(1, ["--config-path", userConfigPath, projectDirectory], resolveFtaBinary()),
-    ).toMatchObject([{ file_name: "classify.ts" }]);
+      getViolations(1, ["--config-path", userConfigPath, projectDirectory], ftaBinary),
+    ).toStrictEqual([]);
+    expect(readRecordedArguments(ftaBinary)).toStrictEqual([
+      "--json",
+      "--config-path",
+      userConfigPath,
+      projectDirectory,
+    ]);
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
     expect(existsSync(userConfigPath)).toBe(true);
+  });
+});
+
+describe("getViolations output errors", () => {
+  it("reports output that is not JSON", () => {
+    const projectDirectory = createProjectDirectory();
+    const ftaBinary = createFakeFtaBinary("#!/bin/sh\necho not-json\n");
+    redirectTemporaryDirectory();
+
+    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(
+      "Failed to execute FTA CLI",
+    );
   });
 });
