@@ -1,7 +1,7 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
 
 describe("withTemporaryConfigFile", () => {
@@ -39,6 +39,10 @@ describe("loadConfig", () => {
 
   beforeEach(() => {
     temporaryDirectory = mkdtempSync(path.join(tmpdir(), "fta-config-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
   });
 
   it("returns default config when no fta.json exists", () => {
