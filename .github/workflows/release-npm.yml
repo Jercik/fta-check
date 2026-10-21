@@ -2,39 +2,76 @@
 name: Release npm
 
 # Copies each release of the Forge package fta-check to npmjs under the
-# unscoped name. The Forge is the only release engine: this workflow waits for the
-# Forge release of the tag, requires the tarball to be the one that release's own
-# job recorded, repacks it and publishes it, so it can publish nothing the Forge
-# has not released. It needs no secret: the Forge is read anonymously and npm
-# authenticates this run through trusted publishing (OIDC).
+# unscoped name. The Forge is the only release engine: the publish job waits for the
+# Forge release of the tag, requires the Forge tarball to be the one that release's
+# own job built and recorded, repacks it and publishes it, so it can publish nothing
+# the Forge has not released. It needs no secret: the Forge is read anonymously and
+# npm authenticates the publish job through trusted publishing (OIDC).
+#
+# npm's trusted publisher for this package names this file and the environment
+# "npm", whose only deployment branch rule is the branch main. Any tag reaches
+# this repository through the push mirror, and a tag's run executes the tag's own copy
+# of this file, so publishing never happens in a tag run: the hand-off job only asks
+# for a publish run on main, whose copy of this file comes from the Forge's protected main.
 
 on:
   push:
     tags:
       - "v*"
-  # Re-runs a release whose tag run failed: dispatch the workflow on the tag
-  # itself ("Use workflow from" a tag). The "Resolve the version" step refuses
-  # any other ref.
+  # The publish entry point, also for re-runs and backfills:
+  # gh workflow run release-npm.yml -R <owner>/<repo> --ref refs/heads/main -f tag=vX.Y.Z
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Forge release tag to copy to npmjs (vX.Y.Z)
+        required: true
+        type: string
 
 permissions: {}
 
-concurrency:
-  group: release-npm-${{ github.ref_name }}
-  cancel-in-progress: false
-
 jobs:
-  publish:
-    name: Publish
-    # Trusted publishing needs a GitHub-hosted runner.
+  hand-off:
+    name: Hand the tag to main
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     permissions:
-      contents: read
-      id-token: write
+      actions: write
     env:
       REF: ${{ github.ref }}
       TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Dispatch the publish run on main
+        # Events caused by GITHUB_TOKEN start no workflow run, except workflow_dispatch and repository_dispatch.
+        # The full ref, because git resolves a bare "main" to a tag of that name before the branch.
+        run: |
+          set -euo pipefail
+          [[ "$REF" == "refs/tags/$TAG" && "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$REF is not a release tag ref (refs/tags/vX.Y.Z)"; exit 1; }
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/release-npm.yml/dispatches" \
+            -d "{\"ref\":\"refs/heads/main\",\"inputs\":{\"tag\":\"$TAG\"}}"
+          echo "Dispatched release-npm.yml on main for $TAG"
+
+  publish:
+    name: Publish
+    if: github.event_name == 'workflow_dispatch'
+    # Trusted publishing needs a GitHub-hosted runner.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # GitHub starts this job only on a ref the environment's deployment branch rule admits (main), and only then puts the environment into the OIDC token npm matches against.
+    environment: npm
+    concurrency:
+      group: release-npm-publish-${{ inputs.tag }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+    env:
+      REF: ${{ github.ref }}
+      TAG: ${{ inputs.tag }}
       SCOPED: "@j4k-oss/fta-check"
       NAME: "fta-check"
       OSS: https://code.j4k.dev/api/packages/j4k-oss/npm/
@@ -48,67 +85,85 @@ jobs:
           node-version: "26.5.0"
 
       - name: Resolve the version
-        # npm's provenance records the ref of this run, and the Forge job accepts only the tag's own ref, binding its commit to the Forge tag. A run from a branch has nothing to bind, so nothing but a release tag ref publishes.
+        # The input is only ever used through this validated value.
         run: |
           set -euo pipefail
-          [[ "$REF" == "refs/tags/$TAG" && "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "::error::$REF is not a release tag ref (refs/tags/vX.Y.Z); dispatch the workflow on the tag to re-run a release"; exit 1; }
+          [ "$REF" = "refs/heads/main" ] || { echo "::error::Publish runs only on main, not $REF; dispatch it with --ref refs/heads/main -f tag=vX.Y.Z"; exit 1; }
+          [[ "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "::error::The tag input $TAG is not vX.Y.Z"; exit 1; }
           version=${BASH_REMATCH[1]}
           node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Wait for the Forge release
-        # semantic-release pushes the tag before it publishes the package.
-        run: |
-          set -euo pipefail
-          deadline=$((SECONDS + 900))
-          until npm view "$SCOPED@$VERSION" version "--@j4k-oss:registry=$OSS" > /dev/null 2>&1; do
-            (( SECONDS < deadline )) || { echo "::error::$SCOPED@$VERSION not on $OSS after 15 minutes"; exit 1; }
-            sleep 20
-          done
-
       - name: Read the integrity the Forge release recorded
-        # Anyone with write access to the Forge package registry can publish a version there, but only the release job records an integrity in the Forge release, so a tarball without that record never reaches npmjs.
+        # The Forge release job attaches the integrity of the tarball it built and published as the release asset forge-tarball-integrity.txt, after the publish. Only a holder of the Forge repository's Actions token or a maintainer can attach it, commit text cannot, and the package registry needs a different principal, so a tarball without that record never reaches npmjs.
         run: |
           set -euo pipefail
           recorded="$RUNNER_TEMP/recorded-integrity"
           node --input-type=module - > "$recorded" <<'EOF'
           const { VERSION, RELEASE_API } = process.env;
-          const RECORD_PATTERN = /^Forge tarball integrity: (sha512-[A-Za-z0-9+/]+={0,2})\r?$/gmu;
+          const ORIGIN = new URL(RELEASE_API).origin;
           const DEADLINE_MS = Date.now() + 15 * 60 * 1000;
           const POLL_MS = 20_000;
+          async function readRecordedIntegrity(release, origin) {
+            const named = (release.assets ?? []).filter((asset) => asset.name === "forge-tarball-integrity.txt");
+            if (named.length === 0) {
+              return undefined;
+            }
+            if (named.length > 1) {
+              throw new Error("The Forge release " + release.tag_name + " has " + named.length + " assets named forge-tarball-integrity.txt");
+            }
+            const url = String(named[0].browser_download_url ?? "");
+            if (!url.startsWith(origin + "/")) {
+              throw new Error("forge-tarball-integrity.txt of " + release.tag_name + " is served from " + JSON.stringify(url) + ", not from " + origin);
+            }
+            const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+            if (!response.ok) {
+              throw new Error("GET " + url + " returned " + response.status);
+            }
+            const value = (await response.text()).slice(0, 512).trim();
+            if (!/^sha512-[A-Za-z0-9+/]{86}==$/u.test(value)) {
+              throw new Error("forge-tarball-integrity.txt of " + release.tag_name + " holds " + JSON.stringify(value.slice(0, 120)) + ", not one sha512 integrity");
+            }
+            return value;
+          }
 
           async function readRelease() {
-            const response = await fetch(RELEASE_API + "/releases/tags/v" + VERSION, {
-              headers: { accept: "application/json" },
-              signal: AbortSignal.timeout(30_000),
-            });
+            const url = RELEASE_API + "/releases/tags/v" + VERSION;
+            const response = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
             if (response.status === 404) {
               return undefined;
             }
             if (!response.ok) {
-              throw new Error("GET " + RELEASE_API + "/releases/tags/v" + VERSION + " returned " + response.status);
+              throw new Error("GET " + url + " returned " + response.status);
             }
             return response.json();
           }
 
           for (;;) {
             const release = await readRelease();
-            const recorded = [...String(release?.body ?? "").matchAll(RECORD_PATTERN)].map((match) => match[1]);
-            if (recorded.length > 1) {
-              throw new Error("The Forge release v" + VERSION + " records " + recorded.length + " tarball integrities");
-            }
-            if (recorded.length === 1) {
-              console.log(recorded[0]);
+            const recorded = release === undefined ? undefined : await readRecordedIntegrity(release, ORIGIN);
+            if (recorded !== undefined) {
+              console.log(recorded);
               break;
             }
             if (Date.now() > DEADLINE_MS) {
-              console.error("::error::The Forge release v" + VERSION + " records no tarball integrity after 15 minutes, so " + VERSION + " did not come from the Forge release job");
+              console.error("::error::The Forge release v" + VERSION + " has no forge-tarball-integrity.txt after 15 minutes, so " + VERSION + " did not come from the Forge release job");
               process.exit(1);
             }
             await new Promise((resolve) => setTimeout(resolve, POLL_MS));
           }
           EOF
           echo "RECORDED_INTEGRITY=$(cat "$recorded")" >> "$GITHUB_ENV"
+
+      - name: Wait for the Forge package
+        # The record is attached after the publish, so the version is normally there already.
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 300))
+          until npm view "$SCOPED@$VERSION" version "--@j4k-oss:registry=$OSS" > /dev/null 2>&1; do
+            (( SECONDS < deadline )) || { echo "::error::$SCOPED@$VERSION not on $OSS"; exit 1; }
+            sleep 20
+          done
 
       - name: Repack the Forge tarball under the npm name
         run: |
