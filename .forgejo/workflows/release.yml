@@ -70,7 +70,7 @@ jobs:
     needs: quality-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Job-level, unlike the other publishers: the npm-mirror job below reads public endpoints only and must not hold a credential that can mint a registry write token, and a workflow-level key would hand it one. Forgejo 16.0.x resolves the job key over the workflow one.
+    # Set on this job only: the npm-mirror job below reads public endpoints only and must not hold a credential that can mint a registry write token, and a workflow-level key would hand it one. Forgejo 16.0.x resolves the job key over the workflow one.
     enable-openid-connect: true
     outputs:
       new-release-version: ${{ steps.release.outputs.version }}
@@ -199,7 +199,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm exec semantic-release
-          # The OCI publisher gets the version from @j4k/semantic-release-github-output, which lives in the private registry that a public package cannot install from. semantic-release tags the released commit before it publishes, so the tag on HEAD names the version, and a rerun of an already released commit finds the same tag.
+          # The released version is this step's output for later steps and jobs. @j4k/semantic-release-github-output would write it, but that plugin lives in the private registry, which a public package cannot install from. semantic-release tags the released commit before it publishes, so the tag on HEAD names the version, and a rerun of an already released commit finds the same tag.
           tag="$(git tag --points-at HEAD --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
           if [ -n "$tag" ]; then
             echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
@@ -276,7 +276,7 @@ jobs:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ steps.pnpm-cache.outputs.cache-primary-key }}
 
-  # The GitHub mirror copies this release to npmjs from the tag the push mirror delivers, and nothing on the Forge sees that run. This job waits for the version on npmjs, then checks the account, the publisher, the artifact and the dist-tags, so a mirror that never ran, or published something else, turns this run red. It is a job here and not a tag-triggered workflow because Forgejo drops events whose actor is the Actions user, and semantic-release pushes its tag as that user. It reads public endpoints only, so it holds no OIDC request credential (enable-openid-connect is set on the release job alone).
+  # The GitHub mirror copies this release to npmjs from the tag the push mirror delivers, and nothing on the Forge sees that run. This job waits for the version on npmjs, then verifies that copy against the Forge release in the steps below, so a mirror that never ran, or published something else, turns this run red. It is a job here and not a tag-triggered workflow because Forgejo drops events whose actor is the Actions user, and semantic-release pushes its tag as that user. It reads public endpoints only, so it holds no OIDC request credential (see enable-openid-connect on the release job).
   npm-mirror:
     name: Verify npm mirror
     needs: release
@@ -415,7 +415,7 @@ jobs:
             const workflow = statement.predicate.buildDefinition.externalParameters.workflow;
             expect("provenance repository and workflow", [workflow.repository, workflow.path], ["https://github.com/" + MIRROR_OWNER + "/" + NAME, WORKFLOW_PATH]);
             const tagRef = "refs/tags/v" + VERSION;
-            // The mirror workflow publishes only from a release tag, so a mirrored version's ref and commit are always bound to the Forge tag. A version npm published before the migration ran from main, which names no tag; only the account gate's baseline run, which sets this variable, accepts that.
+            // The mirror workflow publishes only from a release tag, so a mirrored version's ref and commit are always bound to the Forge tag. A version npm published before the migration ran from main, which names no tag; only a baseline run outside this workflow, which sets this variable, accepts that.
             if (PRE_MIGRATION_BASELINE === "true" && workflow.ref === "refs/heads/main") {
               console.log("ok: pre-migration baseline: provenance ref refs/heads/main accepted, its commit is not bound");
               return;

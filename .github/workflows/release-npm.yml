@@ -13,7 +13,8 @@ on:
     tags:
       - "v*"
   # Re-runs a release whose tag run failed: dispatch the workflow on the tag
-  # itself ("Use workflow from" a tag). The first step refuses any other ref.
+  # itself ("Use workflow from" a tag). The "Resolve the version" step refuses
+  # any other ref.
   workflow_dispatch:
 
 permissions: {}
@@ -126,7 +127,7 @@ jobs:
           npm pkg delete publishConfig
 
       - name: Compare the copy with the Forge release
-        # What is compared is what gets published: the version already on npmjs, or the packed repack. Either must equal the Forge tarball in every member except the three package.json fields the mirror rewrites.
+        # What is compared is what gets published: the version already on npmjs, or the packed repack. Either must equal the Forge tarball in every member except the package.json fields the repack step above rewrites.
         run: |
           set -euo pipefail
           forge_tarballs=("$RUNNER_TEMP"/forge/*.tgz)
