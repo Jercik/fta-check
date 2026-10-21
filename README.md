@@ -1,8 +1,17 @@
 # fta-check
 
+Source: https://code.j4k.dev/j4k-oss/fta-check. github.com/Jercik/fta-check is a read-only mirror; open issues and pull requests on the Forge.
+
 A thin wrapper around [FTA (Fast TypeScript Analyzer)](https://github.com/sgb-io/fta) that provides actionable error messages for automated code quality checks and AI agent guidance.
 
 ## Installation
+
+Each release is published under two names with the same files:
+
+- `fta-check` on npmjs.org, for npm, yarn, and `npx`.
+- `@j4k-oss/fta-check` on the `code.j4k.dev` registry, for pnpm projects that exempt the `@j4k-oss` scope from `minimumReleaseAge`. The registry reads anonymously.
+
+From npmjs.org:
 
 ```bash
 npm install --save-dev fta-check fta-cli
@@ -11,6 +20,21 @@ pnpm add -D fta-check fta-cli
 # or
 yarn add -D fta-check fta-cli
 ```
+
+From `code.j4k.dev`, map the scope to its registry and exempt it in `pnpm-workspace.yaml`, then add the package:
+
+```yaml
+registries:
+  "@j4k-oss": https://code.j4k.dev/api/packages/j4k-oss/npm/
+minimumReleaseAgeExclude:
+  - "@j4k-oss/*"
+```
+
+```bash
+pnpm add -D @j4k-oss/fta-check fta-cli
+```
+
+Both packages install the same `fta-check` command.
 
 **Note**: `fta-cli` is a peer dependency and must be installed alongside `fta-check`. `fta-check` resolves the installed `fta-cli` package and runs its platform binary directly, bypassing the `fta` command, which fails when the install path contains a space.
 

@@ -1,0 +1,208 @@
+---
+name: Release
+
+# Required PR status checks are intentionally disabled, so release reruns the
+# managed quality suite on the merged revision before publishing.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.repository }}-release-forgejo
+  # Never cancel: a run cancelled mid-release can leave a tag without its published artifacts.
+  cancel-in-progress: false
+
+# Workflow-level: Forgejo gates OIDC issuance on the enable-openid-connect key
+# (it ignores a GitHub-style `permissions:` block), applied to every job so the
+# registry-auth step below can mint the OIDC token. Workflow-level is the
+# version-robust placement — current act/jobparser honors a job-level flag too
+# (it resolves job-level precedence during expansion), but a workflow-level flag
+# has always minted, so no per-job setting is needed.
+enable-openid-connect: true
+
+# pnpm defaults verify-deps-before-run to "install": the first `pnpm
+# <script>` or `pnpm exec` whose deps-status check sees drift re-runs a full
+# install with lifecycle scripts enabled, silently dropping this workflow's
+# install flags — a prepare hook the hardened --ignore-scripts install skipped
+# then runs in CI. Only this spelling disables it: pnpm reads
+# pnpm_config_verify_deps_before_run raw from the environment, and the
+# npm_config_ spelling is silently ignored.
+env:
+  pnpm_config_verify_deps_before_run: "false"
+  # An in-tree store would put node_modules above the global virtual store's package
+  # files and mask dependency-declaration leaks from TypeScript; keep it out of the workspace.
+  pnpm_config_store_dir: /tmp/pnpm-store
+
+jobs:
+  # Runs queue one at a time, and semantic-release publishes nothing once main has moved on, so on a superseded run this job sets is-tip to false; gate dependent jobs on that output to skip them.
+  check-tip:
+    name: Check tip
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      is-tip: ${{ steps.tip.outputs.is-tip }}
+    steps:
+      - name: Compare with the tip of main
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          refs="$(git -c "http.$GITHUB_SERVER_URL/.extraheader=Authorization: Basic $auth" ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" refs/heads/main)"
+          # ls-remote patterns are suffix matches, so this also lists refs/heads/*/refs/heads/main.
+          tip="$(printf '%s\n' "$refs" | awk -F'\t' '$2 == "refs/heads/main" { print $1 }')"
+          if [ -z "$tip" ]; then
+            echo "::error::Could not read the tip of main."
+            exit 1
+          fi
+          if [ "$tip" = "$SHA" ]; then
+            echo "is-tip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping: $SHA is superseded by $tip."
+            echo "is-tip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality-checks:
+    needs: check-tip
+    if: needs.check-tip.outputs.is-tip == 'true'
+    uses: ./.forgejo/workflows/checks.yml
+    with:
+      release_gate: true
+    secrets: inherit
+
+  release:
+    name: Release
+    needs: quality-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pnpm store
+        # Not setup-node's `cache: pnpm`: the Forgejo runner's cache server lowercases keys and setup-node compares the matched key case-sensitively, so an exact hit never counts as one there and the store is uploaded again. actions/cache compares them case-insensitively.
+        id: pnpm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: node-cache-${{ runner.os }}-${{ runner.arch }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Configure registry auth
+        env:
+          PUBLISH_AUDIENCE: ${{ vars.NPM_PUBLISH_OSS_AUDIENCE }}
+          EXPECTED_OWNER: "j4k-oss"
+          EXPECTED_NAME: "fta-check"
+          EXPECTED_REGISTRY: "https://code.j4k.dev/api/packages/j4k-oss/npm/"
+          NPM_READ_AUDIENCE: ${{ vars.NPM_READ_AUDIENCE }}
+        run: |
+          set -eu
+          if [ -z "${PUBLISH_AUDIENCE:-}" ]; then
+            echo "::error::NPM_PUBLISH_OSS_AUDIENCE variable is not set. It is the server-generated audience for the org npm-publisher-oss integration; reconcile it from j4k-cluster."
+            exit 1
+          fi
+          if [ -z "${NPM_READ_AUDIENCE:-}" ]; then
+            echo "::error::NPM_READ_AUDIENCE variable is not set. It is the server-generated audience for the org npm-reader integration; reconcile it from j4k-cluster."
+            exit 1
+          fi
+          # Fail with a clear message, not a raw curl error, when the OIDC request vars are absent (enable-openid-connect inactive).
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "::error::No Actions OIDC token on this run (enable-openid-connect inactive)."
+            exit 1
+          fi
+          # Mint the per-run write:package token for the publish. Forgejo appends
+          # `&audience=` to the placeholder-terminated request URL and returns
+          # {"value": "<jwt>"}; pnpm ignores env references in credentials it does
+          # not expand itself, so the token is written literally into the trusted
+          # user-level ~/.npmrc.
+          NODE_AUTH_TOKEN="$(
+            curl -fsSL \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL:-}&audience=${PUBLISH_AUDIENCE}" \
+              | sed -n 's/.*"value" *: *"\([^"]*\)".*/\1/p'
+          )"
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::Failed to obtain an Actions OIDC token for the npm publish."
+            exit 1
+          fi
+          # A curl-fetched token is not auto-masked like a secrets.* value; register it so no later step can print it.
+          echo "::add-mask::${NODE_AUTH_TOKEN}"
+          # The oss-publisher integration mints for every repository on its claim list and the token writes any package in the org, so assert that this run is the package it is about to publish before the token is used: a repository that is not j4k-oss/fta-check, or a package.json that names another package or registry, must fail here, before anything is tagged or published.
+          OIDC_TOKEN="${NODE_AUTH_TOKEN}" node --input-type=module - <<'EOF'
+          import { readFileSync } from "node:fs";
+
+          const { OIDC_TOKEN, EXPECTED_OWNER, EXPECTED_NAME, EXPECTED_REGISTRY } = process.env;
+          const [, payload = ""] = OIDC_TOKEN.split(".");
+          const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+          const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+          const repositoryName = String(claims.repository).split("/")[1];
+          const expected = [
+            ["repository_owner claim", claims.repository_owner, EXPECTED_OWNER],
+            ["repository claim", claims.repository, EXPECTED_OWNER + "/" + EXPECTED_NAME],
+            ["package.json name", manifest.name, "@" + EXPECTED_OWNER + "/" + repositoryName],
+            ["package.json name", manifest.name, "@" + EXPECTED_OWNER + "/" + EXPECTED_NAME],
+            ["package.json publishConfig.registry", manifest.publishConfig?.registry, EXPECTED_REGISTRY],
+          ];
+          const mismatches = expected
+            .filter(([, actual, wanted]) => actual !== wanted)
+            .map(([label, actual, wanted]) => label + " is " + JSON.stringify(actual) + ", expected " + JSON.stringify(wanted));
+          if (mismatches.length > 0) {
+            console.error("::error::The Actions OIDC token does not name the package this run publishes: " + mismatches.join("; "));
+            process.exit(1);
+          }
+          EOF
+          echo "//code.j4k.dev/api/packages/j4k-oss/npm/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+          # The publish token identity (oss-publisher) cannot read the private @j4k
+          # registry, so a second npm-reader token authenticates the @j4k install
+          # line. This credential reads the entire private @j4k registry; it is
+          # masked, and the request vars are blanked below so no later step can
+          # re-mint — but the token itself stays in ~/.npmrc through the publish
+          # (ADR-0009 accepted risk; the install runs --ignore-scripts).
+          NODE_AUTH_READ_TOKEN="$(
+            curl -fsSL \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL:-}&audience=${NPM_READ_AUDIENCE}" \
+              | sed -n 's/.*"value" *: *"\([^"]*\)".*/\1/p'
+          )"
+          if [ -z "${NODE_AUTH_READ_TOKEN:-}" ]; then
+            echo "::error::Failed to obtain an Actions OIDC token for the private registry install."
+            exit 1
+          fi
+          echo "::add-mask::${NODE_AUTH_READ_TOKEN}"
+          echo "//code.j4k.dev/api/packages/j4k/npm/:_authToken=${NODE_AUTH_READ_TOKEN}" >> ~/.npmrc
+          # Workflow-level enable-openid-connect exposes ACTIONS_ID_TOKEN_REQUEST_* to every step; blank them so no later step can mint another token.
+          printf 'ACTIONS_ID_TOKEN_REQUEST_URL=\nACTIONS_ID_TOKEN_REQUEST_TOKEN=\n' >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        # Dependency install scripts must not run while an npm token is in ~/.npmrc: any dependency's install script could steal the publish token and publish packages with it, or the read token that reaches every package in the private registry; the package's own prepack, if it defines one, still runs when semantic-release publishes it.
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Release
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+          FORGEJO_URL: ${{ github.server_url }}
+        run: pnpm exec semantic-release
+
+      - name: Save pnpm store
+        # Last step, so it saves only after the whole job succeeded. The key comes from the restore step so install cannot change it.
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ steps.pnpm-cache.outputs.cache-primary-key }}

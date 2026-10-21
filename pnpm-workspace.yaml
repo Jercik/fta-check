@@ -7,5 +7,8 @@ allowBuilds:
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeExclude:
   - "@j4k/*"
-catalog:
-  conventional-commit-msg: ^1.0.8
+catalog: {}
+packageExtensions:
+  semantic-release:
+    dependencies:
+      "@types/signale": ^1.4.7
