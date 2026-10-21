@@ -52,8 +52,8 @@
     "typecheck": "tsc -b tsconfig.check.json tsconfig.test.json tsconfig.scripts.json tsconfig.app.json tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@commander-js/extra-typings": "^14.0.0",
-    "commander": "^14.0.3"
+    "@commander-js/extra-typings": "^15.0.0",
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@j4k/oxlint-config": "^2.14.2",
