@@ -8,22 +8,39 @@ Requires Node.js 24.15.0 or later.
 
 ## Installation
 
-Each release is published under two names with the same files:
+`fta-check` is published only as `@j4k-oss/fta-check` on the `code.j4k.dev` registry, which reads anonymously. The unscoped `fta-check` package on npmjs.org is frozen at its last release and gets no updates.
 
-- `fta-check` on npmjs.org, for npm, yarn, and `npx`.
-- `@j4k-oss/fta-check` on the `code.j4k.dev` registry, for pnpm projects that exempt the `@j4k-oss` scope from `minimumReleaseAge`. The registry reads anonymously.
+The `@j4k-oss` scope also exists on npmjs.org under an owner we have not confirmed, so a bare `@j4k-oss/fta-check` could resolve to another owner's package there. Map the scope to the Forge registry by adding this line to `~/.npmrc` once:
 
-From npmjs.org:
-
-```bash
-npm install --save-dev fta-check fta-cli
-# or
-pnpm add -D fta-check fta-cli
-# or
-yarn add -D fta-check fta-cli
+```
+@j4k-oss:registry=https://code.j4k.dev/api/packages/j4k-oss/npm/
 ```
 
-From `code.j4k.dev`, map the scope to its registry and exempt it in `pnpm-workspace.yaml`, then add the package:
+The inline flag in the commands below is enough for a single `npx` run. Keep the `~/.npmrc` line for global installs: `npm update -g` and `npm outdated -g` read the registry from the configuration and would otherwise look the scoped name up on npmjs.org.
+
+Run it once without installing:
+
+```bash
+npx -y --@j4k-oss:registry=https://code.j4k.dev/api/packages/j4k-oss/npm/ @j4k-oss/fta-check@latest ./src
+```
+
+Install the `fta-check` command globally:
+
+```bash
+npm install -g --@j4k-oss:registry=https://code.j4k.dev/api/packages/j4k-oss/npm/ @j4k-oss/fta-check
+```
+
+If you installed the unscoped package globally before, run `npm uninstall -g fta-check` before installing. Both packages provide the `fta-check` command, so `npm install -g` stops with `EEXIST`.
+
+Add it to an npm project:
+
+```bash
+npm install --save-dev --@j4k-oss:registry=https://code.j4k.dev/api/packages/j4k-oss/npm/ @j4k-oss/fta-check fta-cli
+```
+
+Also commit the mapping line to the project's `.npmrc`, so collaborators and CI resolve the scope from the Forge. Without a mapping in the user or project configuration, a later plain `npm install` looks the scope up on npmjs.org and fails with a 404.
+
+In a pnpm project, map the scope in `pnpm-workspace.yaml` and exempt it from `minimumReleaseAge`, then add the package:
 
 ```yaml
 registries:
@@ -36,26 +53,24 @@ minimumReleaseAgeExclude:
 pnpm add -D @j4k-oss/fta-check fta-cli
 ```
 
-Both packages install the same `fta-check` command.
-
 **Note**: `fta-cli` is a peer dependency and must be installed alongside `fta-check`. `fta-check` resolves the installed `fta-cli` package and runs its platform binary directly, bypassing the `fta` command, which fails when the install path contains a space.
 
 ## Usage
 
+The examples run the globally installed `fta-check` command. In a project that has it as a dev dependency, run `pnpm exec fta-check` or call it from a package script.
+
 ```bash
 # Analyze current directory
-npx fta-check
-# or
-pnpm exec fta-check
+fta-check
 
 # Analyze specific directory
-npx fta-check ./src
+fta-check ./src
 
 # Show success message (silent by default)
-npx fta-check --verbose
+fta-check --verbose
 
 # Show help
-npx fta-check --help
+fta-check --help
 ```
 
 ### Output Behavior
