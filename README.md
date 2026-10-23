@@ -8,9 +8,9 @@ Requires Node.js 24.15.0 or later.
 
 ## Installation
 
-`fta-check` is published only as `@j4k-oss/fta-check` on the `code.j4k.dev` registry, which reads anonymously. The unscoped `fta-check` package on npmjs.org is frozen at its last release and gets no updates.
+`fta-check` is published only as `@j4k-oss/fta-check` on the `code.j4k.dev` registry, which reads anonymously. The unscoped `fta-check` package on npmjs.org is deprecated and gets no updates.
 
-The `@j4k-oss` scope also exists on npmjs.org under an owner we have not confirmed, so a bare `@j4k-oss/fta-check` could resolve to another owner's package there. Map the scope to the Forge registry by adding this line to `~/.npmrc` once:
+Without a registry mapping, a bare `@j4k-oss/fta-check` command looks on npmjs.org, finds nothing, and fails with a 404. Map the scope to the Forge registry by adding this line to `~/.npmrc` once:
 
 ```
 @j4k-oss:registry=https://code.j4k.dev/api/packages/j4k-oss/npm/
