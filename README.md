@@ -153,7 +153,7 @@ X src/complex-service.ts
    - Extract functionality into separate files (most effective for reducing FTA)
    - Consider splitting into 2-3 modules by feature or concern
    - Complex operations detected (difficulty: 42.2) - extract into helper functions
-   - High bug probability (1.51) - split complex logic for better testing
+   - High estimated bug count (1.51) - split complex logic for better testing
    - Note: Small refactors within the file won't significantly reduce FTA
 
 Found 1 file(s) exceeding threshold of 60

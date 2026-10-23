@@ -26,7 +26,7 @@ function generateSuggestions(result: FtaResult): string[] {
   }
   if (result.halstead.bugs > 1) {
     suggestions.push(
-      `High bug probability (${result.halstead.bugs.toFixed(2)}) - split complex logic for better testing`,
+      `High estimated bug count (${result.halstead.bugs.toFixed(2)}) - split complex logic for better testing`,
     );
   }
   suggestions.push("Note: Small refactors within the file won't significantly reduce FTA");
