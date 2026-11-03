@@ -4,7 +4,7 @@ Source: https://code.j4k.dev/j4k-oss/fta-check. github.com/Jercik/fta-check is a
 
 A thin wrapper around [FTA (Fast TypeScript Analyzer)](https://github.com/sgb-io/fta) that provides actionable error messages for automated code quality checks and AI agent guidance.
 
-Requires Node.js 24.15.0 or later.
+Requires Node.js 26.0.0 or later.
 
 ## Installation
 
