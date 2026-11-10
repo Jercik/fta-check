@@ -38,6 +38,7 @@ describe("parseThresholdValue", () => {
 
   it("rejects non-positive numbers", () => {
     expect(() => parseThresholdValue("0")).toThrow("--threshold must be a positive number");
+    expect(() => parseThresholdValue("-5")).toThrow("--threshold must be a positive number");
   });
 });
 
