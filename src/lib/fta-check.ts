@@ -1,20 +1,16 @@
 import { execFileSync } from "node:child_process";
+import { InvalidArgumentError } from "@commander-js/extra-typings";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
 // FTA labels a score above 60 "Needs improvement".
 export const DEFAULT_THRESHOLD = 60;
-const missingValueMessage = `--threshold requires a non-empty value (e.g., --threshold=${DEFAULT_THRESHOLD.toString()})`;
 
 export function parseThresholdValue(value: string): number {
-  if (value.trim() === "") {
-    throw new TypeError(missingValueMessage);
-  }
-
   const threshold = Number(value);
   if (Number.isNaN(threshold) || threshold <= 0) {
-    throw new TypeError("--threshold must be a positive number");
+    throw new InvalidArgumentError("Expected a positive number.");
   }
   return threshold;
 }

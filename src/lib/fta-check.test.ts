@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { InvalidArgumentError } from "@commander-js/extra-typings";
 import { describe, it, expect, onTestFinished, vi } from "vitest";
 import { buildFtaArguments, getViolations, parseThresholdValue } from "./fta-check.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
@@ -30,16 +31,14 @@ describe("parseThresholdValue", () => {
     expect(parseThresholdValue("42")).toBe(42);
   });
 
-  it("rejects empty values", () => {
-    expect(() => parseThresholdValue("  ")).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=60)",
-    );
-  });
-
-  it("rejects non-positive numbers", () => {
-    expect(() => parseThresholdValue("0")).toThrow("--threshold must be a positive number");
-    expect(() => parseThresholdValue("-5")).toThrow("--threshold must be a positive number");
-  });
+  it.each(["", "  ", "abc", "0", "-5"])(
+    "rejects %j with the error commander reports as a usage error",
+    (value) => {
+      expect(() => parseThresholdValue(value)).toThrow(
+        new InvalidArgumentError("Expected a positive number."),
+      );
+    },
+  );
 });
 
 describe("buildFtaArguments", () => {
