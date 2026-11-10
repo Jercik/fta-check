@@ -119,45 +119,10 @@ Use `--threshold` (not `score_cap`) with `fta-check` to control which files are 
 `fta-check` runs FTA analysis and formats the output to show:
 
 - **File-level metrics**: Complexity scores, maintainability ratings, and Halstead metrics
-- **Actionable recommendations**: Clear guidance on which files need attention and how to improve them
+- **Guidance**: What drives the score, and when to remove code from a file, split it, or leave it whole
 - **Machine-parseable output**: Clean text output to stderr, suitable for CI pipelines and scripting
 
 ## Example Output
-
-When violations are found, `fta-check` outputs detailed analysis to stderr:
-
-```
-The code was statically analyzed and several complexity issues were found:
-
-FTA Score Violations (threshold: 60)
-
-The FTA score combines Halstead complexity, cyclomatic complexity, and lines of code
-to measure maintainability. Higher scores indicate files that are more difficult to maintain.
-
-KEY INSIGHT: The most effective way to reduce FTA scores is to EXTRACT functionality
-   into separate files. This is an opportunity to identify reusable code that could
-   benefit other parts of your codebase. Small optimizations within a file rarely
-   make a significant impact on the FTA score.
-
-X src/complex-service.ts
-   FTA Score: 72.45 (Needs Improvement)
-   Lines: 285 | Cyclomatic Complexity: 18
-
-   Halstead Metrics:
-   - Unique operators: 24 | Unique operands: 89
-   - Total operators: 412 | Total operands: 523
-   - Volume: 4521.32 | Difficulty: 42.15
-   - Estimated bugs: 1.51
-
-   How to improve:
-   - Extract functionality into separate files (most effective for reducing FTA)
-   - Consider splitting into 2-3 modules by feature or concern
-   - Complex operations detected (difficulty: 42.2) - extract into helper functions
-   - High estimated bug count (1.51) - split complex logic for better testing
-   - Note: Small refactors within the file won't significantly reduce FTA
-
-Found 1 file(s) exceeding threshold of 60
-```
 
 When all files pass (with `--verbose`):
 
