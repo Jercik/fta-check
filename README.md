@@ -119,7 +119,7 @@ Use `--threshold` (not `score_cap`) with `fta-check` to control which files are 
 `fta-check` runs FTA analysis and formats the output to show:
 
 - **File-level metrics**: Complexity scores, maintainability ratings, and Halstead metrics
-- **Guidance**: What drives the score, and when to remove code from a file, split it, or leave it whole
+- **Refactoring guidance**: How to rethink the design of a file over the threshold, and which shortcuts only move the score
 - **Machine-parseable output**: Clean text output to stderr, suitable for CI pipelines and scripting
 
 ## Example Output

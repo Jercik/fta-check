@@ -1,22 +1,24 @@
 import type { FtaResult } from "../fta-types.js";
 
-// FTA 3 adds 16.2·ln(lines)·100/171 to the score of a file whose cyclomatic complexity is 3 or more, so 10% fewer lines is about 1 point.
-const guidance = `The score is per file and mostly measures size: it rises with the line count and, less,
-with the number of distinct operators and operands. Lowering it by 1 point takes about 10%
-fewer lines. Removing branches while keeping their lines does not reliably lower it and can
-raise it.
+const guidance = `The FTA score estimates how hard a file is to maintain, from its size, its branching and the
+number of distinct things it works with. A file over the threshold needs a better design, not
+the smallest change that gets it under.
 
-A score over the threshold is a reason to review the file, not to move code out of it:
-1. Search the file for code it does not need (unexported functions nothing calls, branches
-   nothing reaches, duplicated logic) and remove it; removing code nothing reaches changes no
-   behavior. Writing the same logic in fewer or denser lines is not removing it.
-2. Split the file only where you would with no threshold to pass: where the split hides a
-   decision its callers need not know, or separates a side effect from pure logic.
-3. If the file is still over the threshold and no such split exists, keep the file whole,
-   leave this check failing, and report the file, its score and what you ruled out to the
-   project owner. Moving code out to lower the score keeps the complexity and adds an
-   interface to learn. Changing --threshold or fta.json, or committing past this check, is
-   the owner's decision.`;
+Rethink the whole file, not only your change to it, and refactor it without changing what it
+does:
+1. First delete what the file does not need: unexported functions nothing calls, branches
+   nothing reaches, logic written twice. Replace special cases, flags and near-duplicate
+   functions with one general rule. Run this check again, and go on to step 2 only if it
+   still fails.
+2. List the jobs the file does. Where it does more than one, give a job its own module when
+   that hides something from the rest: a decision callers need not know, or a side effect
+   kept apart from pure logic. Its interface should be smaller than the code behind it;
+   prefer the boundary that makes the rest of the file export the least. A split this check
+   prompted is right when that boundary is real.
+
+Do not pass by moving the lines you just added, or any chunk without such a boundary, into
+another file, by writing the same logic in fewer or denser lines, by changing --threshold or
+fta.json, or by committing past this check.`;
 
 function formatViolation(result: FtaResult): string {
   const h = result.halstead;
