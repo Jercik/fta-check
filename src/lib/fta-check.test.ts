@@ -32,7 +32,7 @@ describe("parseThresholdValue", () => {
 
   it("rejects empty values", () => {
     expect(() => parseThresholdValue("  ")).toThrow(
-      "--threshold requires a non-empty value (e.g., --threshold=55)",
+      "--threshold requires a non-empty value (e.g., --threshold=60)",
     );
   });
 

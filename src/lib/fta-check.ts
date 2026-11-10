@@ -3,8 +3,9 @@ import type { FtaResult } from "../fta-types.js";
 import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
-export const DEFAULT_THRESHOLD = 55;
-const missingValueMessage = "--threshold requires a non-empty value (e.g., --threshold=55)";
+// FTA labels a score above 60 "Needs improvement".
+export const DEFAULT_THRESHOLD = 60;
+const missingValueMessage = `--threshold requires a non-empty value (e.g., --threshold=${DEFAULT_THRESHOLD.toString()})`;
 
 export function parseThresholdValue(value: string): number {
   if (value.trim() === "") {
