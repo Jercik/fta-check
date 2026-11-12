@@ -176,8 +176,8 @@ importers:
         version: 15.1.0
     devDependencies:
       '@j4k/oxlint-config':
-        specifier: ^2.14.12
-        version: 2.14.12(oxlint-tsgolint@7.0.2006)(oxlint@1.93.0(oxlint-tsgolint@7.0.2006))
+        specifier: ^2.14.13
+        version: 2.14.13(oxlint-tsgolint@7.0.2006)(oxlint@1.93.0(oxlint-tsgolint@7.0.2006))
       '@j4k/semantic-release-forgejo':
         specifier: ^1.2.5
         version: 1.2.5(semantic-release@25.0.9(supports-color@7.2.0)(typescript@7.0.2))
@@ -258,10 +258,10 @@ packages:
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
 
-  '@j4k/oxlint-config@2.14.12':
-    resolution: {integrity: sha512-zvBP9IbpOyuQWXtZfDhIz3Hsy8kqP2ltW1IV+KIwDGTHsQDIT92yzYsXKKdN84rKt48l8nDXKyltjscc31e+fg==, tarball: https://code.j4k.dev/api/packages/j4k/npm/%40j4k%2Foxlint-config/-/2.14.12/oxlint-config-2.14.12.tgz}
+  '@j4k/oxlint-config@2.14.13':
+    resolution: {integrity: sha512-QkA6lrWsEuJmAZTOw4rAvN6MaDPyEjvV9G75B+fN7By5+1hRZ7xDyDgsD6pBCgBr2igsldiEBTAJnpFeSWBP3g==, tarball: https://code.j4k.dev/api/packages/j4k/npm/%40j4k%2Foxlint-config/-/2.14.13/oxlint-config-2.14.13.tgz}
     peerDependencies:
-      oxlint: '>=1.92.0'
+      oxlint: '>=1.93.0'
       oxlint-tsgolint: '>=7.0.2006'
 
   '@j4k/semantic-release-forgejo@1.2.5':
@@ -2612,7 +2612,7 @@ snapshots:
       tslib: 2.9.1
     optional: true
 
-  '@j4k/oxlint-config@2.14.12(oxlint-tsgolint@7.0.2006)(oxlint@1.93.0(oxlint-tsgolint@7.0.2006))':
+  '@j4k/oxlint-config@2.14.13(oxlint-tsgolint@7.0.2006)(oxlint@1.93.0(oxlint-tsgolint@7.0.2006))':
     dependencies:
       oxlint: 1.93.0(oxlint-tsgolint@7.0.2006)
       oxlint-tsgolint: 7.0.2006
