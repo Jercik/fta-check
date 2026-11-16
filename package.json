@@ -38,7 +38,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check:dts": "node scripts/check-dts.ts",
+    "check:dts": "dts-leaks --own-scope @j4k --own-scope @j4k-oss",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "pnpm run build --watch",
     "format": "oxfmt --config .oxfmtrc.json .",
@@ -58,6 +58,7 @@
     "commander": "^15.0.0"
   },
   "devDependencies": {
+    "@j4k-oss/dts-leaks": "^1.0.0",
     "@j4k/oxlint-config": "^2.14.13",
     "@j4k/semantic-release-forgejo": "^1.2.5",
     "@total-typescript/ts-reset": "^0.6.1",
