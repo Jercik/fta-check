@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["src/cli.ts", "types/**/*.d.ts"],
-  "ignoreDependencies": ["fta-cli", "conventional-changelog-conventionalcommits"],
+  "ignoreDependencies": ["fta-cli"],
   "project": ["src/**/*.ts", "types/**/*.d.ts"],
   "github-actions": {
     "config": [".forgejo/workflows/*.{yml,yaml}"]
