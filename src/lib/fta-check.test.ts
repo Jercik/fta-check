@@ -238,7 +238,34 @@ describe("getViolations output errors", () => {
     redirectTemporaryDirectory();
 
     expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(
-      "Failed to execute FTA CLI",
+      /^FTA CLI printed output that is not JSON: SyntaxError: /u,
+    );
+  });
+});
+
+describe("getViolations errors before fta runs", () => {
+  it("reports an invalid fta.json as such, not as an FTA CLI failure", () => {
+    const projectDirectory = createProjectDirectory();
+    writeFileSync(path.join(projectDirectory, "fta.json"), "{bad");
+    vi.spyOn(process, "cwd").mockReturnValue(projectDirectory);
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
+
+    expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
+      /^Invalid JSON in .*fta\.json: /u,
+    );
+  });
+
+  it("reports a missing temporary directory as such, not as a missing fta binary", () => {
+    const projectDirectory = createProjectDirectory();
+    vi.stubEnv("TMPDIR", "/nonexistent-fta-check-tmpdir");
+    onTestFinished(() => {
+      vi.unstubAllEnvs();
+    });
+
+    expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
+      /^ENOENT: no such file or directory, mkdtemp '\/nonexistent-fta-check-tmpdir\/fta-check-/u,
     );
   });
 });

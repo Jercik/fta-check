@@ -79,18 +79,32 @@ export function getViolations(
   ftaBinary: string = resolveFtaBinary(),
 ): FtaResult[] {
   const runFta = (configPath: string | null): string =>
-    execFileSync(ftaBinary, buildFtaArguments(ftaArguments, configPath), {
+    executeFta(ftaBinary, buildFtaArguments(ftaArguments, configPath));
+
+  const output = readFtaArguments(ftaArguments).givesConfigPath
+    ? runFta(null)
+    : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
+  return parseFtaOutput(output).filter((r) => r.fta_score > threshold);
+}
+
+function parseFtaOutput(output: string): FtaResult[] {
+  try {
+    return JSON.parse(output) as FtaResult[];
+  } catch (error) {
+    throw new Error(`FTA CLI printed output that is not JSON: ${String(error)}`, {
+      cause: error,
+    });
+  }
+}
+
+function executeFta(ftaBinary: string, finalArguments: string[]): string {
+  try {
+    return execFileSync(ftaBinary, finalArguments, {
       encoding: "utf8",
       // fta --json reports every analyzed file, so its output grows with the project past any fixed cap.
       maxBuffer: Number.POSITIVE_INFINITY,
       stdio: ["pipe", "pipe", "pipe"],
     });
-
-  try {
-    const output = readFtaArguments(ftaArguments).givesConfigPath
-      ? runFta(null)
-      : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
-    return (JSON.parse(output) as FtaResult[]).filter((r) => r.fta_score > threshold);
   } catch (error_) {
     const error = error_ as ExecSyncError;
     if ((error as unknown as { code?: string }).code === "ENOENT") {
