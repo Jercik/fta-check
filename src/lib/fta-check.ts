@@ -40,11 +40,12 @@ const FTA_OPTIONS_WITH_VALUE = new Set([
 
 interface FtaArgumentFacts {
   givesConfigPath: boolean;
-  projectPath: string | null;
+  givesProjectPath: boolean;
+  projectPath: string;
 }
 
 function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
-  const facts: FtaArgumentFacts = { givesConfigPath: false, projectPath: null };
+  const facts = { givesConfigPath: false, givesProjectPath: false, projectPath: "." };
   const remaining = arguments_.values();
   for (const argument of remaining) {
     if (FTA_OPTIONS_WITH_VALUE.has(argument)) {
@@ -55,6 +56,7 @@ function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
     } else if (argument.startsWith("-c=") || argument.startsWith("--config-path=")) {
       facts.givesConfigPath = true;
     } else if (!argument.startsWith("-")) {
+      facts.givesProjectPath = true;
       facts.projectPath = argument;
     }
   }
@@ -68,8 +70,9 @@ export function buildFtaArguments(ftaArguments: string[], configPath: string | n
     configPath === null
       ? ["--json", ...userArguments]
       : ["--json", "--config-path", configPath, ...userArguments];
-  if (readFtaArguments(userArguments).projectPath === null) {
-    finalArguments.push(".");
+  const { givesProjectPath, projectPath } = readFtaArguments(userArguments);
+  if (!givesProjectPath) {
+    finalArguments.push(projectPath);
   }
   return finalArguments;
 }
@@ -86,10 +89,10 @@ export function getViolations(
   const output = givesConfigPath
     ? runFta(null)
     : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
-  // fta names each file relative to the project path; report it from where fta-check ran.
+  // fta names each file relative to the project path.
   return parseFtaOutput(output)
     .filter((r) => r.fta_score > threshold)
-    .map((r) => ({ ...r, file_name: path.join(projectPath ?? ".", r.file_name) }));
+    .map((r) => ({ ...r, file_name: path.join(projectPath, r.file_name) }));
 }
 
 function parseFtaOutput(output: string): FtaResult[] {
