@@ -37,26 +37,27 @@ const FTA_OPTIONS_WITH_VALUE = new Set([
   "--exclude-under",
 ]);
 
-function hasPositionalPath(arguments_: string[]): boolean {
+interface FtaArgumentFacts {
+  givesConfigPath: boolean;
+  givesProjectPath: boolean;
+}
+
+function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
+  const facts = { givesConfigPath: false, givesProjectPath: false };
   const remaining = arguments_.values();
   for (const argument of remaining) {
     if (FTA_OPTIONS_WITH_VALUE.has(argument)) {
+      if (argument === "-c" || argument === "--config-path") {
+        facts.givesConfigPath = true;
+      }
       remaining.next();
+    } else if (argument.startsWith("-c=") || argument.startsWith("--config-path=")) {
+      facts.givesConfigPath = true;
     } else if (!argument.startsWith("-")) {
-      return true;
+      facts.givesProjectPath = true;
     }
   }
-  return false;
-}
-
-/**
- * Checks if user provided --config-path or -c flag.
- */
-function hasUserConfigPath(arguments_: string[]): boolean {
-  return arguments_.some(
-    (a) =>
-      a === "--config-path" || a === "-c" || a.startsWith("--config-path=") || a.startsWith("-c="),
-  );
+  return facts;
 }
 
 export function buildFtaArguments(ftaArguments: string[], configPath: string | null): string[] {
@@ -66,7 +67,7 @@ export function buildFtaArguments(ftaArguments: string[], configPath: string | n
     configPath === null
       ? ["--json", ...userArguments]
       : ["--json", "--config-path", configPath, ...userArguments];
-  if (!hasPositionalPath(userArguments)) {
+  if (!readFtaArguments(userArguments).givesProjectPath) {
     finalArguments.push(".");
   }
   return finalArguments;
@@ -86,7 +87,7 @@ export function getViolations(
     });
 
   try {
-    const output = hasUserConfigPath(ftaArguments)
+    const output = readFtaArguments(ftaArguments).givesConfigPath
       ? runFta(null)
       : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
     return (JSON.parse(output) as FtaResult[]).filter((r) => r.fta_score > threshold);
