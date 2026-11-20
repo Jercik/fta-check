@@ -66,6 +66,12 @@ fta-check
 # Analyze specific directory
 fta-check ./src
 
+# Report files scoring above 50 instead of 60
+fta-check --threshold 50
+
+# Use this fta.json instead of the nearest one
+fta-check --config config/fta.json
+
 # Show success message (silent by default)
 fta-check --verbose
 
@@ -97,7 +103,7 @@ This means most projects don't need an `fta.json` file at all.
 
 ### Customizing Configuration
 
-Create an `fta.json` file in your project root to customize settings. `fta-check` uses the nearest `fta.json` in the directory it analyzes or any directory above it, so a package in a monorepo can keep its own. Each key you specify **completely replaces** the corresponding default (no merging). See the [official FTA configuration docs](https://ftaproject.dev/docs/configuration) for all available options.
+Create an `fta.json` file in your project root to customize settings. `fta-check` uses the nearest `fta.json` in the directory it analyzes or any directory above it, so a package in a monorepo can keep its own; `--config <file>` names one to use instead. FTA settings such as `exclude_under` go in that file: `fta-check` accepts only the options its `--help` lists. Each key you specify **completely replaces** the corresponding default (no merging). See the [official FTA configuration docs](https://ftaproject.dev/docs/configuration) for all available options.
 
 To include test files in analysis, override the default with an empty array:
 

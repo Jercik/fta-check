@@ -72,8 +72,8 @@ export function withTemporaryConfigFile<T>(config: FtaConfig, use: (configPath: 
   }
 }
 
-export function loadConfig(projectDirectory: string): FtaConfig {
-  const configPath = findNearestConfigFile(path.resolve(projectDirectory));
+export function loadConfig(directory: string, configFile: string | undefined): FtaConfig {
+  const configPath = configFile ?? findNearestConfigFile(path.resolve(directory));
   const repoConfig = configPath === undefined ? undefined : readConfigFile(configPath);
   return mergeConfig(DEFAULT_CONFIG, repoConfig);
 }

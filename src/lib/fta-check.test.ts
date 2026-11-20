@@ -1,18 +1,9 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { InvalidArgumentError } from "@commander-js/extra-typings";
 import { describe, it, expect, onTestFinished, vi } from "vitest";
-import { buildFtaArguments, getViolations, parseThresholdValue } from "./fta-check.js";
+import { getViolations, parseThresholdValue } from "./fta-check.js";
 import { resolveFtaBinary } from "./resolve-fta-binary.js";
 
 const branchySource = `export function classify(value: number): string {
@@ -41,63 +32,6 @@ describe("parseThresholdValue", () => {
   );
 });
 
-describe("buildFtaArguments", () => {
-  it("injects --json and the config path, appending the default path when none is given", () => {
-    expect(buildFtaArguments([], "/tmp/fta.json")).toStrictEqual([
-      "--json",
-      "--config-path",
-      "/tmp/fta.json",
-      ".",
-    ]);
-  });
-
-  it.each([
-    [
-      ["--exclude-under", "10"],
-      ["--json", "--config-path", "/tmp/fta.json", "--exclude-under", "10", "."],
-    ],
-    [
-      ["-s", "500"],
-      ["--json", "--config-path", "/tmp/fta.json", "-s", "500", "."],
-    ],
-    [
-      ["-e", "10"],
-      ["--json", "--config-path", "/tmp/fta.json", "-e", "10", "."],
-    ],
-  ])("does not mistake an option value in %j for the project path", (ftaArguments, expected) => {
-    expect(buildFtaArguments(ftaArguments, "/tmp/fta.json")).toStrictEqual(expected);
-  });
-
-  it("keeps a project path given after an option value", () => {
-    expect(buildFtaArguments(["-e", "10", "src"], "/tmp/fta.json")).toStrictEqual([
-      "--json",
-      "--config-path",
-      "/tmp/fta.json",
-      "-e",
-      "10",
-      "src",
-    ]);
-  });
-
-  it("drops a user-supplied --json so it is not forwarded to fta twice", () => {
-    expect(buildFtaArguments(["--json", "src"], "/tmp/fta.json")).toStrictEqual([
-      "--json",
-      "--config-path",
-      "/tmp/fta.json",
-      "src",
-    ]);
-  });
-
-  it("omits the injected config path when configPath is null", () => {
-    expect(buildFtaArguments(["--config-path", "./fta.json", "src"], null)).toStrictEqual([
-      "--json",
-      "--config-path",
-      "./fta.json",
-      "src",
-    ]);
-  });
-});
-
 describe("getViolations", () => {
   it("runs fta when the binary path and the project path contain spaces", () => {
     const root = mkdtempSync(path.join(tmpdir(), "fta-check-test-"));
@@ -112,9 +46,12 @@ describe("getViolations", () => {
     copyFileSync(resolveFtaBinary(), ftaBinary);
     writeFileSync(path.join(projectDirectory, "classify.ts"), branchySource);
 
-    expect(getViolations(1, [projectDirectory], ftaBinary)).toMatchObject([
-      { file_name: path.join(projectDirectory, "classify.ts") },
-    ]);
+    expect(
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        ftaBinary,
+      ),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
   });
 });
 
@@ -150,17 +87,6 @@ function createFakeFtaBinary(script: string): string {
   return binaryPath;
 }
 
-const recordArgumentsScript = `#!/bin/sh
-printf '%s\\n' "$@" > "$(dirname "$0")/arguments.txt"
-echo '[]'
-`;
-
-function readRecordedArguments(ftaBinary: string): string[] {
-  return readFileSync(path.join(path.dirname(ftaBinary), "arguments.txt"), "utf8")
-    .trimEnd()
-    .split("\n");
-}
-
 describe("getViolations fta.json", () => {
   it("reads the analyzed directory's fta.json over one in the working directory above it", () => {
     const projectDirectory = createProjectDirectory();
@@ -179,9 +105,12 @@ describe("getViolations fta.json", () => {
       vi.restoreAllMocks();
     });
 
-    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
-      { file_name: path.join(projectDirectory, "classify.ts") },
-    ]);
+    expect(
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        resolveFtaBinary(),
+      ),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
   });
 
   it("reads fta.json from a directory above the analyzed one when it has none", () => {
@@ -192,9 +121,38 @@ describe("getViolations fta.json", () => {
       JSON.stringify({ exclude_filenames: ["generated.ts"] }),
     );
 
-    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
-      { file_name: path.join(projectDirectory, "classify.ts") },
-    ]);
+    expect(
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        resolveFtaBinary(),
+      ),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
+  });
+
+  it("reads a given config file instead of the analyzed directory's fta.json", () => {
+    const projectDirectory = createProjectDirectory();
+    writeFileSync(path.join(projectDirectory, "generated.ts"), branchySource);
+    writeFileSync(
+      path.join(projectDirectory, "fta.json"),
+      JSON.stringify({ exclude_filenames: ["classify.ts"] }),
+    );
+    const configFile = path.join(path.dirname(projectDirectory), "custom-fta.json");
+    writeFileSync(configFile, JSON.stringify({ exclude_filenames: ["generated.ts"] }));
+
+    expect(
+      getViolations({ threshold: 1, directory: projectDirectory, configFile }, resolveFtaBinary()),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
+  });
+
+  it("keeps the default test-file exclusion with a given config file", () => {
+    const projectDirectory = createProjectDirectory();
+    writeFileSync(path.join(projectDirectory, "classify.test.ts"), branchySource);
+    const configFile = path.join(path.dirname(projectDirectory), "custom-fta.json");
+    writeFileSync(configFile, JSON.stringify({ score_cap: 1000 }));
+
+    expect(
+      getViolations({ threshold: 1, directory: projectDirectory, configFile }, resolveFtaBinary()),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
   });
 });
 
@@ -203,9 +161,12 @@ describe("getViolations temporary config directory", () => {
     const projectDirectory = createProjectDirectory();
     const scratchDirectory = redirectTemporaryDirectory();
 
-    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
-      { file_name: path.join(projectDirectory, "classify.ts") },
-    ]);
+    expect(
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        resolveFtaBinary(),
+      ),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "classify.ts") }]);
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
   });
 
@@ -214,7 +175,10 @@ describe("getViolations temporary config directory", () => {
     const scratchDirectory = redirectTemporaryDirectory();
 
     expect(() =>
-      getViolations(1, [projectDirectory], path.join(scratchDirectory, "missing-fta")),
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        path.join(scratchDirectory, "missing-fta"),
+      ),
     ).toThrow("FTA binary not found");
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
   });
@@ -224,30 +188,13 @@ describe("getViolations temporary config directory", () => {
     const ftaBinary = createFakeFtaBinary("#!/bin/sh\necho boom >&2\nexit 3\n");
     const scratchDirectory = redirectTemporaryDirectory();
 
-    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(
-      "FTA CLI failed with exit code 3",
-    );
+    expect(() =>
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        ftaBinary,
+      ),
+    ).toThrow("FTA CLI failed with exit code 3");
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
-  });
-
-  it("is not created, and the user's config is kept, when --config-path is given", () => {
-    const projectDirectory = createProjectDirectory();
-    const userConfigPath = path.join(projectDirectory, "custom-fta.json");
-    writeFileSync(userConfigPath, "{}");
-    const ftaBinary = createFakeFtaBinary(recordArgumentsScript);
-    const scratchDirectory = redirectTemporaryDirectory();
-
-    expect(
-      getViolations(1, ["--config-path", userConfigPath, projectDirectory], ftaBinary),
-    ).toStrictEqual([]);
-    expect(readRecordedArguments(ftaBinary)).toStrictEqual([
-      "--json",
-      "--config-path",
-      userConfigPath,
-      projectDirectory,
-    ]);
-    expect(readdirSync(scratchDirectory)).toStrictEqual([]);
-    expect(existsSync(userConfigPath)).toBe(true);
   });
 });
 
@@ -269,7 +216,12 @@ describe("getViolations fta exit failures", () => {
     const ftaBinary = createFakeFtaBinary(script);
     redirectTemporaryDirectory();
 
-    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(new Error(expected));
+    expect(() =>
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        ftaBinary,
+      ),
+    ).toThrow(new Error(expected));
   });
 });
 
@@ -284,9 +236,12 @@ process.stdout.write(JSON.stringify(results));
 `);
     redirectTemporaryDirectory();
 
-    expect(getViolations(60, [projectDirectory], ftaBinary)).toMatchObject([
-      { file_name: path.join(projectDirectory, "complex.ts"), fta_score: 75 },
-    ]);
+    expect(
+      getViolations(
+        { threshold: 60, directory: projectDirectory, configFile: undefined },
+        ftaBinary,
+      ),
+    ).toMatchObject([{ file_name: path.join(projectDirectory, "complex.ts"), fta_score: 75 }]);
   });
 });
 
@@ -296,9 +251,12 @@ describe("getViolations output errors", () => {
     const ftaBinary = createFakeFtaBinary("#!/bin/sh\necho not-json\n");
     redirectTemporaryDirectory();
 
-    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(
-      /^FTA CLI printed output that is not JSON: SyntaxError: /u,
-    );
+    expect(() =>
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        ftaBinary,
+      ),
+    ).toThrow(/^FTA CLI printed output that is not JSON: SyntaxError: /u);
   });
 });
 
@@ -307,9 +265,12 @@ describe("getViolations errors before fta runs", () => {
     const projectDirectory = createProjectDirectory();
     writeFileSync(path.join(projectDirectory, "fta.json"), "{bad");
 
-    expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
-      /^Invalid JSON in .*fta\.json: /u,
-    );
+    expect(() =>
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        resolveFtaBinary(),
+      ),
+    ).toThrow(/^Invalid JSON in .*fta\.json: /u);
   });
 
   it("reports a missing temporary directory as such, not as a missing fta binary", () => {
@@ -319,7 +280,12 @@ describe("getViolations errors before fta runs", () => {
       vi.unstubAllEnvs();
     });
 
-    expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
+    expect(() =>
+      getViolations(
+        { threshold: 1, directory: projectDirectory, configFile: undefined },
+        resolveFtaBinary(),
+      ),
+    ).toThrow(
       /^ENOENT: no such file or directory, mkdtemp '\/nonexistent-fta-check-tmpdir\/fta-check-/u,
     );
   });
@@ -327,17 +293,17 @@ describe("getViolations errors before fta runs", () => {
 
 describe("getViolations file names", () => {
   it.each([
-    [["./src"], "src/lib/complex.ts"],
-    [["-e", "10", "packages/app"], "packages/app/lib/complex.ts"],
-    [[], "lib/complex.ts"],
-  ])("names files from the working directory for fta arguments %j", (ftaArguments, expected) => {
+    ["./src", "src/lib/complex.ts"],
+    ["packages/app", "packages/app/lib/complex.ts"],
+    [".", "lib/complex.ts"],
+  ])("names files from the working directory when analyzing %j", (directory, expected) => {
     const ftaBinary = createFakeFtaBinary(`#!/bin/sh
 echo '[{"file_name": "lib/complex.ts", "fta_score": 75}]'
 `);
     redirectTemporaryDirectory();
 
-    expect(getViolations(60, ftaArguments, ftaBinary)).toMatchObject([
-      { file_name: expected, fta_score: 75 },
-    ]);
+    expect(
+      getViolations({ threshold: 60, directory, configFile: undefined }, ftaBinary),
+    ).toMatchObject([{ file_name: expected, fta_score: 75 }]);
   });
 });

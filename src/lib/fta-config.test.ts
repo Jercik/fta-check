@@ -46,7 +46,7 @@ describe("loadConfig", () => {
   });
 
   it("returns default config when no fta.json exists", () => {
-    const result = loadConfig(temporaryDirectory);
+    const result = loadConfig(temporaryDirectory, undefined);
     expect(result).toStrictEqual({ exclude_filenames: ["*.test.{ts,tsx}"] });
   });
 
@@ -54,7 +54,7 @@ describe("loadConfig", () => {
     const repoConfig = { score_cap: 200 };
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
-    const result = loadConfig(temporaryDirectory);
+    const result = loadConfig(temporaryDirectory, undefined);
     expect(result).toStrictEqual({
       exclude_filenames: ["*.test.{ts,tsx}"],
       score_cap: 200,
@@ -65,7 +65,7 @@ describe("loadConfig", () => {
     const repoConfig = { exclude_filenames: [] };
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
-    const result = loadConfig(temporaryDirectory);
+    const result = loadConfig(temporaryDirectory, undefined);
     expect(result).toStrictEqual({ exclude_filenames: [] });
   });
 
@@ -73,13 +73,13 @@ describe("loadConfig", () => {
     const repoConfig = { exclude_filenames: ["*.spec.ts"] };
     writeFileSync(path.join(temporaryDirectory, "fta.json"), JSON.stringify(repoConfig));
 
-    const result = loadConfig(temporaryDirectory);
+    const result = loadConfig(temporaryDirectory, undefined);
     expect(result).toStrictEqual({ exclude_filenames: ["*.spec.ts"] });
   });
 
   it("throws a useful error for invalid fta.json", () => {
     writeFileSync(path.join(temporaryDirectory, "fta.json"), "{ invalid");
 
-    expect(() => loadConfig(temporaryDirectory)).toThrow("Invalid JSON");
+    expect(() => loadConfig(temporaryDirectory, undefined)).toThrow("Invalid JSON");
   });
 });

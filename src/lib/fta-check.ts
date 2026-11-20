@@ -22,77 +22,23 @@ type ExecSyncError = Error & {
   stderr?: Buffer | string;
 };
 
-// fta-cli 3 reads the argument after each of these options as its value, never as the project path.
-const FTA_OPTIONS_WITH_VALUE = new Set([
-  "-c",
-  "--config-path",
-  "-f",
-  "--format",
-  "-o",
-  "--output-limit",
-  "-s",
-  "--score-cap",
-  "-i",
-  "--include-comments",
-  "-e",
-  "--exclude-under",
-]);
-
-interface FtaArgumentFacts {
-  givesConfigPath: boolean;
-  givesProjectPath: boolean;
-  projectPath: string;
-}
-
-function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
-  const facts = { givesConfigPath: false, givesProjectPath: false, projectPath: "." };
-  const remaining = arguments_.values();
-  for (const argument of remaining) {
-    if (FTA_OPTIONS_WITH_VALUE.has(argument)) {
-      if (argument === "-c" || argument === "--config-path") {
-        facts.givesConfigPath = true;
-      }
-      remaining.next();
-    } else if (argument.startsWith("-c=") || argument.startsWith("--config-path=")) {
-      facts.givesConfigPath = true;
-    } else if (!argument.startsWith("-")) {
-      facts.givesProjectPath = true;
-      facts.projectPath = argument;
-    }
-  }
-  return facts;
-}
-
-export function buildFtaArguments(ftaArguments: string[], configPath: string | null): string[] {
-  // fta-check always injects its own --json; drop a user-supplied one so fta isn't given it twice.
-  const userArguments = ftaArguments.filter((a) => a !== "--json");
-  const finalArguments =
-    configPath === null
-      ? ["--json", ...userArguments]
-      : ["--json", "--config-path", configPath, ...userArguments];
-  const { givesProjectPath, projectPath } = readFtaArguments(userArguments);
-  if (!givesProjectPath) {
-    finalArguments.push(projectPath);
-  }
-  return finalArguments;
+export interface CheckOptions {
+  threshold: number;
+  directory: string;
+  configFile: string | undefined;
 }
 
 export function getViolations(
-  threshold: number,
-  ftaArguments: string[],
+  { threshold, directory, configFile }: CheckOptions,
   ftaBinary: string = resolveFtaBinary(),
 ): FtaResult[] {
-  const runFta = (configPath: string | null): string =>
-    executeFta(ftaBinary, buildFtaArguments(ftaArguments, configPath));
-
-  const { givesConfigPath, projectPath } = readFtaArguments(ftaArguments);
-  const output = givesConfigPath
-    ? runFta(null)
-    : withTemporaryConfigFile(loadConfig(projectPath), runFta);
-  // fta names each file relative to the project path.
+  const output = withTemporaryConfigFile(loadConfig(directory, configFile), (configPath) =>
+    executeFta(ftaBinary, ["--json", "--config-path", configPath, directory]),
+  );
+  // fta names each file relative to the analyzed directory.
   return parseFtaOutput(output)
     .filter((r) => r.fta_score > threshold)
-    .map((r) => ({ ...r, file_name: path.join(projectPath, r.file_name) }));
+    .map((r) => ({ ...r, file_name: path.join(directory, r.file_name) }));
 }
 
 function parseFtaOutput(output: string): FtaResult[] {

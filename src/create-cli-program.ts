@@ -1,11 +1,14 @@
+import type { CommandUnknownOpts } from "@commander-js/extra-typings";
 import { Command } from "@commander-js/extra-typings";
 import packageJson from "../package.json" with { type: "json" };
+import type { CheckOptions } from "./lib/fta-check.js";
 import { DEFAULT_THRESHOLD, getViolations, parseThresholdValue } from "./lib/fta-check.js";
 import { printReport } from "./lib/fta-report.js";
 
-function run(threshold: number, ftaArguments: string[], verbose: boolean): number {
+function run(check: CheckOptions, verbose: boolean): number {
+  const { threshold } = check;
   try {
-    const violations = getViolations(threshold, ftaArguments);
+    const violations = getViolations(check);
 
     if (violations.length === 0) {
       if (verbose) {
@@ -22,13 +25,11 @@ function run(threshold: number, ftaArguments: string[], verbose: boolean): numbe
   }
 }
 
-export function createCliProgram(): Command {
+export function createCliProgram(): CommandUnknownOpts {
   return new Command()
     .name("fta-check" satisfies keyof typeof packageJson.bin)
     .description(packageJson.description)
     .version(packageJson.version)
-    .allowUnknownOption(true)
-    .allowExcessArguments(true)
     .showHelpAfterError("(add --help for additional information)")
     .showSuggestionAfterError()
     .option(
@@ -37,9 +38,13 @@ export function createCliProgram(): Command {
       parseThresholdValue,
       DEFAULT_THRESHOLD,
     )
+    .option("--config <file>", "fta.json to use instead of the nearest one")
     .option("-v, --verbose", "Show success message when all files pass")
-    .action((options, command) => {
-      const exitCode = run(options.threshold, command.args, options.verbose ?? false);
-      process.exitCode = exitCode;
+    .argument("[directory]", "directory to analyze", ".")
+    .action((directory, options) => {
+      process.exitCode = run(
+        { threshold: options.threshold, directory, configFile: options.config },
+        options.verbose ?? false,
+      );
     });
 }
