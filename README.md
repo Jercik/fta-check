@@ -87,6 +87,14 @@ fta-check --help
 - **Verbose mode**: Use `-v` or `--verbose` to see a success message
 - **Violations reported to stderr**: All output goes to stderr, keeping stdout clean for piping
 
+The exit status tells a script which outcome it got:
+
+| Status | Meaning                                                                                                                    |
+| ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| 0      | Every file scores at or below the threshold.                                                                               |
+| 1      | At least one file scores above the threshold.                                                                              |
+| 2      | The check could not run, for example on an unknown option, a missing `fta-cli`, an invalid `fta.json`, or a failing `fta`. |
+
 ## Configuration
 
 ### Default Settings
