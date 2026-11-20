@@ -186,6 +186,23 @@ describe("getViolations temporary config directory", () => {
   });
 });
 
+describe("getViolations output size", () => {
+  it("parses fta output larger than 1 MiB", () => {
+    const projectDirectory = createProjectDirectory();
+    const ftaBinary = createFakeFtaBinary(`#!/usr/bin/env node
+const entry = (fileName, ftaScore) => ({ file_name: fileName, fta_score: ftaScore, padding: "x".repeat(400) });
+const results = Array.from({ length: 3000 }, (_, index) => entry("simple-" + index + ".ts", 10));
+results.push(entry("complex.ts", 75));
+process.stdout.write(JSON.stringify(results));
+`);
+    redirectTemporaryDirectory();
+
+    expect(getViolations(60, [projectDirectory], ftaBinary)).toMatchObject([
+      { file_name: "complex.ts", fta_score: 75 },
+    ]);
+  });
+});
+
 describe("getViolations output errors", () => {
   it("reports output that is not JSON", () => {
     const projectDirectory = createProjectDirectory();

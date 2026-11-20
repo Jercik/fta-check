@@ -61,6 +61,8 @@ export function getViolations(
   const runFta = (configPath: string | null): string =>
     execFileSync(ftaBinary, buildFtaArguments(ftaArguments, configPath), {
       encoding: "utf8",
+      // fta --json reports every analyzed file, so its output grows with the project past any fixed cap.
+      maxBuffer: Number.POSITIVE_INFINITY,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
