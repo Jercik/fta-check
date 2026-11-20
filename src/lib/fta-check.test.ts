@@ -51,6 +51,23 @@ describe("buildFtaArguments", () => {
     ]);
   });
 
+  it.each([
+    [
+      ["--exclude-under", "10"],
+      ["--json", "--config-path", "/tmp/fta.json", "--exclude-under", "10", "."],
+    ],
+    [
+      ["-s", "500"],
+      ["--json", "--config-path", "/tmp/fta.json", "-s", "500", "."],
+    ],
+    [
+      ["-e", "10", "src"],
+      ["--json", "--config-path", "/tmp/fta.json", "-e", "10", "src"],
+    ],
+  ])("does not mistake an option value in %j for the project path", (ftaArguments, expected) => {
+    expect(buildFtaArguments(ftaArguments, "/tmp/fta.json")).toStrictEqual(expected);
+  });
+
   it("drops a user-supplied --json so it is not forwarded to fta twice", () => {
     expect(buildFtaArguments(["--json", "src"], "/tmp/fta.json")).toStrictEqual([
       "--json",

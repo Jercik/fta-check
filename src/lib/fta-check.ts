@@ -21,9 +21,28 @@ type ExecSyncError = Error & {
   stderr?: Buffer | string;
 };
 
+// fta-cli 3 reads the argument after each of these options as its value, never as the project path.
+const FTA_OPTIONS_WITH_VALUE = new Set([
+  "-c",
+  "--config-path",
+  "-f",
+  "--format",
+  "-o",
+  "--output-limit",
+  "-s",
+  "--score-cap",
+  "-i",
+  "--include-comments",
+  "-e",
+  "--exclude-under",
+]);
+
 function hasPositionalPath(arguments_: string[]): boolean {
-  for (const a of arguments_) {
-    if (!a.startsWith("-")) {
+  const remaining = arguments_.values();
+  for (const argument of remaining) {
+    if (FTA_OPTIONS_WITH_VALUE.has(argument)) {
+      remaining.next();
+    } else if (!argument.startsWith("-")) {
       return true;
     }
   }
