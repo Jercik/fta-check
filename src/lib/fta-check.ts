@@ -110,9 +110,11 @@ function executeFta(ftaBinary: string, finalArguments: string[]): string {
     if ((error as unknown as { code?: string }).code === "ENOENT") {
       throw new Error(`FTA binary not found at ${ftaBinary}`, { cause: error_ });
     }
-    if (typeof error.status === "number" && error.stderr) {
-      const stderrText = Buffer.isBuffer(error.stderr) ? error.stderr.toString() : error.stderr;
-      throw new Error(`FTA CLI failed with exit code ${String(error.status)}: ${stderrText}`, {
+    if (typeof error.status === "number") {
+      const stderrText = String(error.stderr ?? "").trim();
+      const report = stderrText === "" ? String(error.stdout ?? "").trim() : stderrText;
+      const detail = report === "" ? "" : `: ${report}`;
+      throw new Error(`FTA CLI failed with exit code ${String(error.status)}${detail}`, {
         cause: error_,
       });
     }

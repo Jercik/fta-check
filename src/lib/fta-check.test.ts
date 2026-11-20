@@ -214,6 +214,28 @@ describe("getViolations temporary config directory", () => {
   });
 });
 
+describe("getViolations fta exit failures", () => {
+  it.each([
+    [
+      "stderr",
+      "#!/bin/sh\necho 'cannot read src' >&2\nexit 3\n",
+      "FTA CLI failed with exit code 3: cannot read src",
+    ],
+    [
+      "stdout when stderr is empty",
+      "#!/bin/sh\necho 'cannot read src'\nexit 3\n",
+      "FTA CLI failed with exit code 3: cannot read src",
+    ],
+    ["no output", "#!/bin/sh\nexit 3\n", "FTA CLI failed with exit code 3"],
+  ])("reports the exit code with %s", (_output, script, expected) => {
+    const projectDirectory = createProjectDirectory();
+    const ftaBinary = createFakeFtaBinary(script);
+    redirectTemporaryDirectory();
+
+    expect(() => getViolations(1, [projectDirectory], ftaBinary)).toThrow(new Error(expected));
+  });
+});
+
 describe("getViolations output size", () => {
   it("parses fta output larger than 1 MiB", () => {
     const projectDirectory = createProjectDirectory();
