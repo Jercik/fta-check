@@ -88,7 +88,7 @@ export function getViolations(
   const { givesConfigPath, projectPath } = readFtaArguments(ftaArguments);
   const output = givesConfigPath
     ? runFta(null)
-    : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
+    : withTemporaryConfigFile(loadConfig(projectPath), runFta);
   // fta names each file relative to the project path.
   return parseFtaOutput(output)
     .filter((r) => r.fta_score > threshold)

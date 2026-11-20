@@ -24,16 +24,16 @@ const DEFAULT_CONFIG: FtaConfig = {
   exclude_filenames: ["*.test.{ts,tsx}"],
 };
 
-/**
- * Reads fta.json from the specified directory if it exists.
- * Returns undefined if the file doesn't exist.
- */
-function readConfigFile(directory: string): FtaConfig | undefined {
-  const configPath = path.join(directory, "fta.json");
-  if (!existsSync(configPath)) {
-    return undefined;
+function findNearestConfigFile(directory: string): string | undefined {
+  const candidate = path.join(directory, "fta.json");
+  if (existsSync(candidate)) {
+    return candidate;
   }
+  const parent = path.dirname(directory);
+  return parent === directory ? undefined : findNearestConfigFile(parent);
+}
 
+function readConfigFile(configPath: string): FtaConfig {
   try {
     const content = readFileSync(configPath, "utf8");
     return JSON.parse(content) as FtaConfig;
@@ -72,11 +72,8 @@ export function withTemporaryConfigFile<T>(config: FtaConfig, use: (configPath: 
   }
 }
 
-/**
- * Loads and merges config for the given project directory.
- * Applies fta-check defaults, overridden by repo's fta.json if present.
- */
 export function loadConfig(projectDirectory: string): FtaConfig {
-  const repoConfig = readConfigFile(projectDirectory);
+  const configPath = findNearestConfigFile(path.resolve(projectDirectory));
+  const repoConfig = configPath === undefined ? undefined : readConfigFile(configPath);
   return mergeConfig(DEFAULT_CONFIG, repoConfig);
 }

@@ -161,6 +161,43 @@ function readRecordedArguments(ftaBinary: string): string[] {
     .split("\n");
 }
 
+describe("getViolations fta.json", () => {
+  it("reads the analyzed directory's fta.json over one in the working directory above it", () => {
+    const projectDirectory = createProjectDirectory();
+    const parentDirectory = path.dirname(projectDirectory);
+    writeFileSync(path.join(projectDirectory, "generated.ts"), branchySource);
+    writeFileSync(
+      path.join(projectDirectory, "fta.json"),
+      JSON.stringify({ exclude_filenames: ["generated.ts"] }),
+    );
+    writeFileSync(
+      path.join(parentDirectory, "fta.json"),
+      JSON.stringify({ exclude_filenames: ["classify.ts"] }),
+    );
+    vi.spyOn(process, "cwd").mockReturnValue(parentDirectory);
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
+
+    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
+      { file_name: path.join(projectDirectory, "classify.ts") },
+    ]);
+  });
+
+  it("reads fta.json from a directory above the analyzed one when it has none", () => {
+    const projectDirectory = createProjectDirectory();
+    writeFileSync(path.join(projectDirectory, "generated.ts"), branchySource);
+    writeFileSync(
+      path.join(path.dirname(projectDirectory), "fta.json"),
+      JSON.stringify({ exclude_filenames: ["generated.ts"] }),
+    );
+
+    expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
+      { file_name: path.join(projectDirectory, "classify.ts") },
+    ]);
+  });
+});
+
 describe("getViolations temporary config directory", () => {
   it("is removed after a successful run", () => {
     const projectDirectory = createProjectDirectory();
@@ -269,10 +306,6 @@ describe("getViolations errors before fta runs", () => {
   it("reports an invalid fta.json as such, not as an FTA CLI failure", () => {
     const projectDirectory = createProjectDirectory();
     writeFileSync(path.join(projectDirectory, "fta.json"), "{bad");
-    vi.spyOn(process, "cwd").mockReturnValue(projectDirectory);
-    onTestFinished(() => {
-      vi.restoreAllMocks();
-    });
 
     expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
       /^Invalid JSON in .*fta\.json: /u,
