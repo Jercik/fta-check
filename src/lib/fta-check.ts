@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import path from "node:path";
 import { InvalidArgumentError } from "@commander-js/extra-typings";
 import type { FtaResult } from "../fta-types.js";
 import { loadConfig, withTemporaryConfigFile } from "./fta-config.js";
@@ -39,11 +40,11 @@ const FTA_OPTIONS_WITH_VALUE = new Set([
 
 interface FtaArgumentFacts {
   givesConfigPath: boolean;
-  givesProjectPath: boolean;
+  projectPath: string | null;
 }
 
 function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
-  const facts = { givesConfigPath: false, givesProjectPath: false };
+  const facts: FtaArgumentFacts = { givesConfigPath: false, projectPath: null };
   const remaining = arguments_.values();
   for (const argument of remaining) {
     if (FTA_OPTIONS_WITH_VALUE.has(argument)) {
@@ -54,7 +55,7 @@ function readFtaArguments(arguments_: string[]): FtaArgumentFacts {
     } else if (argument.startsWith("-c=") || argument.startsWith("--config-path=")) {
       facts.givesConfigPath = true;
     } else if (!argument.startsWith("-")) {
-      facts.givesProjectPath = true;
+      facts.projectPath = argument;
     }
   }
   return facts;
@@ -67,7 +68,7 @@ export function buildFtaArguments(ftaArguments: string[], configPath: string | n
     configPath === null
       ? ["--json", ...userArguments]
       : ["--json", "--config-path", configPath, ...userArguments];
-  if (!readFtaArguments(userArguments).givesProjectPath) {
+  if (readFtaArguments(userArguments).projectPath === null) {
     finalArguments.push(".");
   }
   return finalArguments;
@@ -81,10 +82,14 @@ export function getViolations(
   const runFta = (configPath: string | null): string =>
     executeFta(ftaBinary, buildFtaArguments(ftaArguments, configPath));
 
-  const output = readFtaArguments(ftaArguments).givesConfigPath
+  const { givesConfigPath, projectPath } = readFtaArguments(ftaArguments);
+  const output = givesConfigPath
     ? runFta(null)
     : withTemporaryConfigFile(loadConfig(process.cwd()), runFta);
-  return parseFtaOutput(output).filter((r) => r.fta_score > threshold);
+  // fta names each file relative to the project path; report it from where fta-check ran.
+  return parseFtaOutput(output)
+    .filter((r) => r.fta_score > threshold)
+    .map((r) => ({ ...r, file_name: path.join(projectPath ?? ".", r.file_name) }));
 }
 
 function parseFtaOutput(output: string): FtaResult[] {

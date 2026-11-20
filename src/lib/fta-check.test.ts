@@ -113,7 +113,7 @@ describe("getViolations", () => {
     writeFileSync(path.join(projectDirectory, "classify.ts"), branchySource);
 
     expect(getViolations(1, [projectDirectory], ftaBinary)).toMatchObject([
-      { file_name: "classify.ts" },
+      { file_name: path.join(projectDirectory, "classify.ts") },
     ]);
   });
 });
@@ -167,7 +167,7 @@ describe("getViolations temporary config directory", () => {
     const scratchDirectory = redirectTemporaryDirectory();
 
     expect(getViolations(1, [projectDirectory], resolveFtaBinary())).toMatchObject([
-      { file_name: "classify.ts" },
+      { file_name: path.join(projectDirectory, "classify.ts") },
     ]);
     expect(readdirSync(scratchDirectory)).toStrictEqual([]);
   });
@@ -248,7 +248,7 @@ process.stdout.write(JSON.stringify(results));
     redirectTemporaryDirectory();
 
     expect(getViolations(60, [projectDirectory], ftaBinary)).toMatchObject([
-      { file_name: "complex.ts", fta_score: 75 },
+      { file_name: path.join(projectDirectory, "complex.ts"), fta_score: 75 },
     ]);
   });
 });
@@ -289,5 +289,22 @@ describe("getViolations errors before fta runs", () => {
     expect(() => getViolations(1, [projectDirectory], resolveFtaBinary())).toThrow(
       /^ENOENT: no such file or directory, mkdtemp '\/nonexistent-fta-check-tmpdir\/fta-check-/u,
     );
+  });
+});
+
+describe("getViolations file names", () => {
+  it.each([
+    [["./src"], "src/lib/complex.ts"],
+    [["-e", "10", "packages/app"], "packages/app/lib/complex.ts"],
+    [[], "lib/complex.ts"],
+  ])("names files from the working directory for fta arguments %j", (ftaArguments, expected) => {
+    const ftaBinary = createFakeFtaBinary(`#!/bin/sh
+echo '[{"file_name": "lib/complex.ts", "fta_score": 75}]'
+`);
+    redirectTemporaryDirectory();
+
+    expect(getViolations(60, ftaArguments, ftaBinary)).toMatchObject([
+      { file_name: expected, fta_score: 75 },
+    ]);
   });
 });
